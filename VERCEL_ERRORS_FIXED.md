@@ -4,6 +4,15 @@ This document lists the common Vercel errors and how they've been addressed in t
 
 ## ✅ Fixed Issues
 
+### 0. Dependency Conflict (React 18 vs React 19)
+**Error**: `@react-three/drei@10.7.6` requires React 19, but project uses React 18.2.0
+
+**Fix Applied**:
+- ✅ **Removed** `@react-three/drei` entirely (not used in codebase)
+- ✅ Downgraded `@react-three/fiber` from `^9.3.0` to `^8.15.19` (React 18 compatible)
+- ✅ Added `frontend/.npmrc` with `legacy-peer-deps=true` as fallback
+- ✅ Verified code only uses `@react-three/fiber` (no drei imports found)
+
 ### 1. Missing public directory / Missing build script
 **Error**: The build step fails if output directory is missing or build script is not defined.
 
