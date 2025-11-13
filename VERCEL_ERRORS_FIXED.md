@@ -18,8 +18,9 @@ This document lists the common Vercel errors and how they've been addressed in t
 
 **Fix Applied**:
 - ✅ Added `vercel-build` script in `frontend/package.json`
-- ✅ Configured correct output directory: `frontend/build` in `vercel.json`
+- ✅ Configured correct output directory: `build` (relative to `frontend/` directory) in `vercel.json`
 - ✅ Updated route destination to match: `frontend/build/$1`
+- ⚠️ **Important**: `distDir` in `@vercel/static-build` config is relative to the source directory (`frontend/`), not the project root
 
 ### 2. Conflicting functions and builds configuration
 **Error**: Cannot use both `functions` and `builds` properties simultaneously.
