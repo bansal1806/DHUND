@@ -15,27 +15,17 @@
   ],
   "routes": [
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "api/index.py"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|gif|woff|woff2|ttf|eot|map))",
-      "dest": "/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/index.html"
     },
     {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
-  "outputDirectory": "frontend/build",
   "env": {
     "PYTHONUNBUFFERED": "1"
   }
