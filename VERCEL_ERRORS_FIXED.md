@@ -17,9 +17,10 @@ This document lists the common Vercel errors and how they've been addressed in t
 **Error**: `ModuleNotFoundError: No module named 'distutils'` - Python 3.12 removed distutils which older packages need
 
 **Fix Applied**:
-- ✅ Created `runtime.txt` with `python-3.11` to use Python 3.11 (which still has distutils)
+- ✅ Created `Pipfile` with `python_version = "3.11"` (Vercel recognizes Pipfile for Python version)
 - ✅ Changed `opencv-python` to `opencv-python-headless` in requirements.txt (better for serverless, no GUI dependencies)
-- ⚠️ **Note**: Python 3.11 is more compatible with existing package versions. For Python 3.12, all packages would need major version updates.
+- ✅ Updated `numpy` to `>=1.26.0` in requirements.txt (has pre-built wheels for Python 3.12, avoids distutils)
+- ⚠️ **Note**: Using Pipfile to specify Python 3.11. If Vercel still uses 3.12, numpy 1.26+ has wheels that don't need distutils.
 
 ### 1. Missing public directory / Missing build script
 **Error**: The build step fails if output directory is missing or build script is not defined.
