@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Upload, User, Phone, MapPin, Clock, Camera, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { apiUrl } from '../config/api';
 
 const ReportMissing = () => {
   const [formData, setFormData] = useState({
@@ -63,7 +64,7 @@ const ReportMissing = () => {
         }
       });
 
-      await axios.post('http://localhost:8000/api/report-missing', formDataToSend, {
+      await axios.post(apiUrl('api/report-missing'), formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

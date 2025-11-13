@@ -27,8 +27,10 @@ ai_engine = AIEngine()
 db = Database()
 
 # Serve uploaded files
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Use /tmp for Vercel serverless (read-only filesystem except /tmp)
+upload_dir = os.path.join(os.environ.get("TMPDIR", "/tmp"), "uploads")
+os.makedirs(upload_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 @app.get("/")
 async def root():
@@ -43,8 +45,10 @@ async def report_missing_person(
 ):
     """Report a missing person"""
     try:
-        # Save uploaded photo
-        photo_path = f"uploads/{photo.filename}"
+        # Save uploaded photo (use /tmp for Vercel serverless)
+        upload_dir = os.path.join(os.environ.get("TMPDIR", "/tmp"), "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        photo_path = os.path.join(upload_dir, photo.filename)
         with open(photo_path, "wb") as buffer:
             buffer.write(await photo.read())
         
@@ -132,8 +136,10 @@ async def citizen_report_sighting(
 ):
     """Citizen reports sighting of missing person"""
     try:
-        # Save sighting photo
-        sighting_path = f"uploads/sighting_{sighting_photo.filename}"
+        # Save sighting photo (use /tmp for Vercel serverless)
+        upload_dir = os.path.join(os.environ.get("TMPDIR", "/tmp"), "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        sighting_path = os.path.join(upload_dir, f"sighting_{sighting_photo.filename}")
         with open(sighting_path, "wb") as buffer:
             buffer.write(await sighting_photo.read())
         

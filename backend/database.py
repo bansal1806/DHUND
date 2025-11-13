@@ -5,7 +5,10 @@ from typing import Dict, List, Optional
 import os
 
 class Database:
-    def __init__(self, db_path: str = "dhund.db"):
+    def __init__(self, db_path: str = None):
+        # Use /tmp for Vercel serverless (read-only filesystem except /tmp)
+        if db_path is None:
+            db_path = os.path.join(os.environ.get("TMPDIR", "/tmp"), "dhund.db")
         self.db_path = db_path
         self.init_database()
     

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, CheckCircle, Search, User, MapPin, Camera, Scan, Eye } from 'lucide-react';
 import axios from 'axios';
 import SimpleFaceModel from './SimpleFaceModel';
+import { apiUrl } from '../config/api';
 
 const Demo = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -109,7 +110,9 @@ const Demo = () => {
       
       if (i === 4) { // Match found step
         try {
-          const response = await axios.post('http://localhost:8000/api/demo-match/1');
+          const response = await axios.post(apiUrl('api/demo-match'), null, {
+            params: { person_id: 1 }
+          });
           setDemoData(prev => ({
             ...prev,
             results: response.data.match_details
