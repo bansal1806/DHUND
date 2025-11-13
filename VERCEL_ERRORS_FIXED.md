@@ -13,6 +13,14 @@ This document lists the common Vercel errors and how they've been addressed in t
 - ✅ Added `frontend/.npmrc` with `legacy-peer-deps=true` as fallback
 - ✅ Verified code only uses `@react-three/fiber` (no drei imports found)
 
+### 1.5. Python 3.12 Compatibility Issue (distutils)
+**Error**: `ModuleNotFoundError: No module named 'distutils'` - Python 3.12 removed distutils which older packages need
+
+**Fix Applied**:
+- ✅ Created `runtime.txt` with `python-3.11` to use Python 3.11 (which still has distutils)
+- ✅ Changed `opencv-python` to `opencv-python-headless` in requirements.txt (better for serverless, no GUI dependencies)
+- ⚠️ **Note**: Python 3.11 is more compatible with existing package versions. For Python 3.12, all packages would need major version updates.
+
 ### 1. Missing public directory / Missing build script
 **Error**: The build step fails if output directory is missing or build script is not defined.
 

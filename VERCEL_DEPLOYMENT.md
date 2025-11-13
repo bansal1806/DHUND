@@ -110,9 +110,11 @@ The deployment is configured with:
 
 ### Build Errors
 
-1. **Python dependencies not found**
+1. **Python dependencies not found / distutils error**
    - Ensure `requirements.txt` is in the root directory
-   - Check that all dependencies are compatible with Python 3.9+
+   - **Python Version**: Created `runtime.txt` with `python-3.11` (Python 3.12 removed distutils)
+   - Check that all dependencies are compatible with Python 3.11
+   - If using Python 3.12, update all packages to latest versions
 
 2. **Frontend build fails**
    - Check `frontend/package.json` has `vercel-build` script
