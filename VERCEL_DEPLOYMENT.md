@@ -95,6 +95,19 @@ The deployment is configured with:
 
 ## Troubleshooting
 
+### Common Vercel Errors
+
+#### Missing public directory / Missing build script
+- ✅ **Fixed**: `vercel-build` script is configured in `frontend/package.json`
+- ✅ **Fixed**: Build output directory is correctly set to `frontend/build` in `vercel.json`
+
+#### Conflicting functions and builds configuration
+- ✅ **Fixed**: Using `builds` configuration only (removed conflicting `functions` property)
+- Note: Function timeout is configured via Vercel dashboard settings instead
+
+#### Mixed routing properties
+- ✅ **Fixed**: Only using `routes` property (no conflicting rewrites/redirects/headers)
+
 ### Build Errors
 
 1. **Python dependencies not found**
@@ -104,20 +117,23 @@ The deployment is configured with:
 2. **Frontend build fails**
    - Check `frontend/package.json` has `vercel-build` script
    - Ensure all dependencies are listed
+   - Verify build output directory exists: `frontend/build`
 
 3. **API routes not working**
    - Verify `vercel.json` routing configuration
    - Check that `api/index.py` exists and exports `handler`
+   - Ensure API routes start with `/api/`
 
 ### Runtime Errors
 
 1. **Function timeout**
    - Default timeout is 10 seconds (Hobby plan)
-   - Increased to 30 seconds in `vercel.json`
+   - **Configure in Vercel Dashboard**: Settings → Functions → Max Duration (set to 30s)
    - For longer operations, consider:
      - Background jobs
      - Queue system (Vercel Queue)
      - Separate API service
+   - Pro plan allows up to 60 seconds, Enterprise allows up to 900 seconds
 
 2. **File upload issues**
    - Check file size limits (4.5MB for Hobby plan)
