@@ -121,10 +121,12 @@ The deployment is configured with:
    - Ensure all dependencies are listed
    - Verify build output directory exists: `frontend/build`
 
-3. **API routes not working**
+3. **API routes not working / 404 errors**
    - Verify `vercel.json` routing configuration
    - Check that `api/index.py` exists and exports `handler`
    - Ensure API routes start with `/api/`
+   - **React Router 404**: All non-API routes must serve `index.html` (catch-all route)
+   - Static assets should be served directly before the catch-all
 
 ### Runtime Errors
 

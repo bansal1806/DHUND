@@ -22,6 +22,16 @@ This document lists the common Vercel errors and how they've been addressed in t
 - ✅ Updated `numpy` to `>=1.26.0` in requirements.txt (has pre-built wheels for Python 3.12, avoids distutils)
 - ⚠️ **Note**: Using Pipfile to specify Python 3.11. If Vercel still uses 3.12, numpy 1.26+ has wheels that don't need distutils.
 
+### 1.6. 404 NOT_FOUND Error (React Router SPA)
+**Error**: `404: NOT_FOUND` - React Router routes not working, all routes return 404
+
+**Fix Applied**:
+- ✅ Updated `vercel.json` routes to handle React Router SPA correctly:
+  - API routes (`/api/*`) → Python handler
+  - Static assets (`/static/*` and files with extensions) → Serve directly
+  - All other routes → Serve `index.html` (catch-all for React Router)
+- ⚠️ **Important**: React Router is client-side, so all non-API routes must serve `index.html` to let React handle routing
+
 ### 1. Missing public directory / Missing build script
 **Error**: The build step fails if output directory is missing or build script is not defined.
 
