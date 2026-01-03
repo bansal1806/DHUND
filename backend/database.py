@@ -8,7 +8,9 @@ class Database:
     def __init__(self, db_path: str = None):
         # Use /tmp for Vercel serverless (read-only filesystem except /tmp)
         if db_path is None:
-            db_path = os.path.join(os.environ.get("TMPDIR", "/tmp"), "dhund.db")
+            # Cross-platform temp directory
+            tmp_dir = os.environ.get("TMPDIR", os.environ.get("TEMP", os.getcwd()))
+            db_path = os.path.join(tmp_dir, "dhund.db")
         self.db_path = db_path
         self.init_database()
     
@@ -28,9 +30,17 @@ class Database:
                 reported_date TEXT,
                 status TEXT DEFAULT 'missing',
                 ai_analysis TEXT,
+                face_encoding TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Migration: Add face_encoding column if it doesn't exist
+        try:
+            cursor.execute('ALTER TABLE missing_persons ADD COLUMN face_encoding TEXT')
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
         
         # Citizen reports table
         cursor.execute('''
@@ -84,15 +94,16 @@ class Database:
         
         cursor.execute('''
             INSERT INTO missing_persons 
-            (name, age, description, photo_path, reported_date, ai_analysis)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (name, age, description, photo_path, reported_date, ai_analysis, face_encoding)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             person.name,
             person.age,
             person.description,
             person.photo_path,
             person.reported_date.isoformat(),
-            json.dumps(ai_analysis)
+            json.dumps(ai_analysis),
+            json.dumps(ai_analysis.get('face_encoding', []))
         ))
         
         person_id = cursor.lastrowid
@@ -129,7 +140,8 @@ class Database:
                 'photo_path': row[4],
                 'reported_date': row[5],
                 'status': row[6],
-                'ai_analysis': json.loads(row[7]) if row[7] else {}
+                'ai_analysis': json.loads(row[7]) if row[7] else {},
+                'face_encoding': json.loads(row[8]) if row[8] else []
             }
         
         return None

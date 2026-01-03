@@ -12,7 +12,7 @@ function App() {
   const [currentDemo, setCurrentDemo] = useState(null);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
         <Header />
         <Routes>

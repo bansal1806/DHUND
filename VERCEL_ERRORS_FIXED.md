@@ -28,9 +28,11 @@ This document lists the common Vercel errors and how they've been addressed in t
 **Fix Applied**:
 - ✅ Updated `vercel.json` routes to handle React Router SPA correctly:
   - API routes (`/api/*`) → Python handler
-  - Static assets (`/static/*` and files with extensions) → Serve directly
+  - Static assets (`/static/*` and files with extensions) → Serve directly from root (not `frontend/build/`)
+  - Root route (`/`) → Serve `index.html`
   - All other routes → Serve `index.html` (catch-all for React Router)
-- ⚠️ **Important**: React Router is client-side, so all non-API routes must serve `index.html` to let React handle routing
+- ⚠️ **Important**: When using `@vercel/static-build`, files are deployed to the root, so routes should point to `/` not `frontend/build/`
+- ⚠️ **Note**: React Router is client-side, so all non-API routes must serve `index.html` to let React handle routing
 
 ### 1. Missing public directory / Missing build script
 **Error**: The build step fails if output directory is missing or build script is not defined.

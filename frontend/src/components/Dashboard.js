@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Users, MapPin, Clock, AlertTriangle, CheckCircle, TrendingUp, Activity, Camera, Zap } from 'lucide-react';
+import { Search, Users, MapPin, Clock, AlertTriangle, CheckCircle, TrendingUp, Activity, Camera, Zap, Shield, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import supabase from '../supabase';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -27,15 +29,52 @@ const Dashboard = () => {
     successfulMatches: 156
   });
 
-  // Simulate real-time updates
+  // Fui Corner Helper
+  const FuiCorner = () => (
+    <>
+      <div className="fui-corner fui-corner-tl" />
+      <div className="fui-corner fui-corner-tr" />
+      <div className="fui-corner fui-corner-bl" />
+      <div className="fui-corner fui-corner-br" />
+    </>
+  );
+
+  // Listen for real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' },
+        (payload) => {
+          const newActivity = {
+            id: Date.now(),
+            type: 'sighting',
+            child: payload.new.person_id ? `Case #${payload.new.person_id}` : 'Anonymous',
+            location: payload.new.location,
+            time: 'Just now',
+            status: 'verifying'
+          };
+          setRecentActivity(prev => [newActivity, ...prev.slice(0, 4)]);
+
+          setStats(prev => ({
+            ...prev,
+            activeSearches: prev.activeSearches + 1
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Simulate background noise updates
   useEffect(() => {
     const interval = setInterval(() => {
       setStats(prev => ({
         ...prev,
-        activeSearches: Math.max(0, prev.activeSearches + Math.floor(Math.random() * 3) - 1),
-        communityReports: prev.communityReports + Math.floor(Math.random() * 5)
+        communityReports: prev.communityReports + Math.floor(Math.random() * 2)
       }));
-
       setNetworkStatus(prev => ({
         ...prev,
         scansPerHour: prev.scansPerHour + Math.floor(Math.random() * 20) - 10,
@@ -48,242 +87,198 @@ const Dashboard = () => {
 
   const getActivityIcon = (type) => {
     switch (type) {
-      case 'found': return <CheckCircle className="text-emerald-400" size={20} />;
-      case 'missing': return <AlertTriangle className="text-rose-400" size={20} />;
-      case 'sighting': return <MapPin className="text-amber-400" size={20} />;
-      case 'alert': return <Activity className="text-purple-400" size={20} />;
-      default: return <Clock className="text-gray-400" size={20} />;
-    }
-  };
-
-  const getActivityColor = (type) => {
-    switch (type) {
-      case 'found': return 'gradient-emerald';
-      case 'missing': return 'gradient-rose';
-      case 'sighting': return 'gradient-amber';
-      case 'alert': return 'gradient-purple';
-      default: return 'modern-card';
+      case 'found': return <CheckCircle size={20} className="text-emerald-400" />;
+      case 'missing': return <AlertTriangle size={20} className="text-rose-400" />;
+      case 'sighting': return <MapPin size={20} className="text-amber-400" />;
+      case 'alert': return <Activity size={20} className="text-purple-400" />;
+      default: return <Clock size={20} className="text-gray-400" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      {/* Animated Background */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute top-3/4 right-1/4 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '1s'}}></div>
-      </div>
+    <div className="min-h-screen bg-[#020617] relative selection:bg-cyan-500/30 font-mono">
+      {/* Cinematic Overlays */}
+      <div className="hud-overlay" />
+      <div className="scanline" />
+      <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-12">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-3 h-3 bg-purple-500 rounded-full glow-purple"></div>
-            <h1 className="text-5xl font-black text-gradient-purple">DHUND Control Center</h1>
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-10">
+        {/* Header HUD */}
+        <div className="mb-12 border-b border-cyan-500/20 pb-8 flex justify-between items-end">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Terminal size={18} className="text-cyan-500" />
+              <span className="text-[10px] font-bold text-cyan-500 tracking-[0.2em]">COMMAND_CENTER_v4.2</span>
+            </div>
+            <h1 className="text-5xl font-black hologram-text text-white">SYSTEM_DASHBOARD</h1>
+            <p className="text-sm text-slate-500 mt-2 max-w-xl font-mono">
+              Monitoring 15,842 federated neural nodes across national sectors.
+              Spatial intelligence active.
+            </p>
           </div>
-          <p className="text-xl text-gray-400 max-w-3xl mb-8">
-            Real-time monitoring and analytics for missing person detection across India
-          </p>
-
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-4">
-            <Link to="/report-missing" className="btn-primary flex items-center gap-3 px-6 py-3">
-              <AlertTriangle size={20} />
-              <span>Report Missing</span>
+          <div className="flex gap-4">
+            <Link to="/report-missing" className="modern-card py-2 px-6 border-rose-500/30 text-rose-500 text-xs hover:bg-rose-500/10 flex items-center gap-2">
+              <AlertTriangle size={14} /> NEW_REPORT
             </Link>
-            <Link to="/search-network" className="btn-secondary flex items-center gap-3 px-6 py-3">
-              <Camera size={20} />
-              <span>CCTV Network</span>
-            </Link>
-            <Link to="/demo" className="btn-secondary flex items-center gap-3 px-6 py-3 glow-cyan">
-              <Zap size={20} />
-              <span>Live Demo</span>
+            <Link to="/demo" className="modern-card py-2 px-6 border-cyan-500/30 text-cyan-500 text-xs hover:bg-cyan-500/10 flex items-center gap-2 animate-pulse-glow">
+              <Zap size={14} /> LAUNCH_SIM
             </Link>
           </div>
         </div>
-        
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
-          <div className="modern-card gradient-rose p-8 text-center status-active">
-            <div className="flex items-center justify-center mb-4">
-              <Users className="text-rose-400" size={32} />
-            </div>
-            <h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-2">Missing Children</h3>
-            <p className="text-4xl font-black text-white mb-2">{stats.missingChildren.toLocaleString()}</p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
-              <p className="text-rose-400 text-sm font-medium">Active Cases</p>
-            </div>
-          </div>
-          
-          <div className="modern-card gradient-emerald p-8 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <CheckCircle className="text-emerald-400" size={32} />
-            </div>
-            <h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-2">Found Children</h3>
-            <p className="text-4xl font-black text-white mb-2">{stats.foundChildren.toLocaleString()}</p>
-            <div className="flex items-center justify-center gap-2">
-              <TrendingUp className="text-emerald-400" size={16} />
-              <p className="text-emerald-400 text-sm font-medium">This Month</p>
-            </div>
-          </div>
-          
-          <div className="modern-card gradient-amber p-8 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <Search className="text-amber-400" size={32} />
-            </div>
-            <h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-2">Active Searches</h3>
-            <p className="text-4xl font-black text-white mb-2">{stats.activeSearches}</p>
-            <div className="flex items-center justify-center gap-2">
-              <Activity className="text-amber-400" size={16} />
-              <p className="text-amber-400 text-sm font-medium">In Progress</p>
-            </div>
-          </div>
-          
-          <div className="modern-card gradient-cyan p-8 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <MapPin className="text-cyan-400" size={32} />
-            </div>
-            <h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-2">Community Reports</h3>
-            <p className="text-4xl font-black text-white mb-2">{stats.communityReports.toLocaleString()}</p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-              <p className="text-cyan-400 text-sm font-medium">This Week</p>
-            </div>
-          </div>
+
+        {/* HUD Statistics Tiles */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {[
+            { label: "MISSING_SIGNATURES", val: stats.missingChildren, color: "rose", icon: Users },
+            { label: "VERIFIED_RECOVERIES", val: stats.foundChildren, color: "emerald", icon: CheckCircle },
+            { label: "ACTIVE_PROBES", val: stats.activeSearches, color: "amber", icon: Search },
+            { label: "COMMUNITY_UPLOADS", val: stats.communityReports, color: "cyan", icon: MapPin }
+          ].map((item, i) => (
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              key={i}
+              className={`modern-card border-${item.color}-500/20 p-6 flex flex-col justify-between h-[160px]`}
+            >
+              <FuiCorner />
+              <div className="flex justify-between items-start">
+                <span className={`text-[10px] font-bold text-${item.color}-500/70 tracking-widest`}>{item.label}</span>
+                <item.icon size={16} className={`text-${item.color}-500/50`} />
+              </div>
+              <div>
+                <div className="text-4xl font-black text-white hologram-text">{item.val.toLocaleString()}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`w-1.5 h-1.5 rounded-full bg-${item.color}-500 animate-pulse`} />
+                  <span className={`text-[8px] text-${item.color}-500/60 font-mono tracking-tighter`}>STREAMING_DATA_LINK_STABLE</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <div className="modern-card p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Activity className="text-purple-400" size={24} />
-              <h2 className="text-2xl font-bold text-white">Success Metrics</h2>
+        {/* Diagnostics & Network HUD */}
+        <div className="grid grid-cols-12 gap-8 mb-12">
+          {/* Performance HUD */}
+          <div className="col-span-12 lg:col-span-7 modern-card p-8">
+            <FuiCorner />
+            <div className="flex items-center gap-3 mb-8 border-b border-slate-800 pb-4">
+              <Activity className="text-cyan-500" size={20} />
+              <h2 className="text-xl font-bold text-white tracking-widest">NEURAL_EFFICIENCY_METRICS</h2>
             </div>
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Success Rate</span>
-                  <span className="text-emerald-400 font-bold">{stats.successRate}%</span>
+
+            <div className="space-y-8">
+              {[
+                { label: "MATCH_PROBABILITY_INDEX", val: stats.successRate, color: "emerald" },
+                { label: "GRID_RESPONSE_LATENCY", val: (60 - stats.avgResponseTime) / 60 * 100, labelVal: `${stats.avgResponseTime}s`, color: "cyan" },
+                { label: "AI_CORE_PRECISION", val: 96.3, color: "purple" }
+              ].map((metric, i) => (
+                <div key={i}>
+                  <div className="flex justify-between mb-2 items-center">
+                    <span className="text-[10px] text-slate-400 font-bold tracking-wider">{metric.label}</span>
+                    <span className={`text-xs font-bold text-${metric.color}-400`}>{metric.labelVal || `${metric.val}%`}</span>
+                  </div>
+                  <div className="h-1 bg-slate-900 overflow-hidden relative border border-slate-800/50">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${metric.val}%` }}
+                      className={`h-full bg-${metric.color}-500 shadow-[0_0_10px_rgba(var(--accent-${metric.color}),0.5)]`}
+                    />
+                  </div>
                 </div>
-                <div className="progress-bar h-3">
-                  <div className="progress-fill h-3" style={{ width: `${stats.successRate}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Avg Response Time</span>
-                  <span className="text-cyan-400 font-bold">{stats.avgResponseTime}s</span>
-                </div>
-                <div className="progress-bar h-3">
-                  <div className="progress-fill h-3" style={{ width: `${(60 - stats.avgResponseTime) / 60 * 100}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">AI Accuracy</span>
-                  <span className="text-purple-400 font-bold">96.3%</span>
-                </div>
-                <div className="progress-bar h-3">
-                  <div className="progress-fill h-3" style={{ width: '96.3%' }}></div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          <div className="modern-card p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Camera className="text-cyan-400" size={24} />
-              <h2 className="text-2xl font-bold text-white">Network Status</h2>
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse ml-2"></div>
+          {/* Network Node HUD */}
+          <div className="col-span-12 lg:col-span-5 modern-card p-8">
+            <FuiCorner />
+            <div className="flex items-center gap-3 mb-8 border-b border-slate-800 pb-4">
+              <Shield className="text-purple-500" size={20} />
+              <h2 className="text-xl font-bold text-white tracking-widest">NODE_NETWORK_STATUS</h2>
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="text-center modern-card p-4 gradient-cyan">
-                <p className="text-3xl font-bold text-cyan-400 mb-1">{networkStatus.totalCameras.toLocaleString()}</p>
-                <p className="text-gray-300 text-sm font-medium">Total Cameras</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "TOTAL_NODES", val: networkStatus.totalCameras.toLocaleString(), color: "slate" },
+                { label: "ACTIVE_LINKS", val: networkStatus.activeCameras.toLocaleString(), color: "cyan" },
+                { label: "SCANS/SEC", val: Math.floor(networkStatus.scansPerHour / 360), color: "amber" },
+                { label: "SECURE_MATCHES", val: networkStatus.successfulMatches, color: "purple" }
+              ].map((box, i) => (
+                <div key={i} className="bg-black/40 border border-slate-800 p-4 relative group hover:border-cyan-500/30 transition-colors">
+                  <div className="text-[8px] text-slate-500 font-bold mb-1">{box.label}</div>
+                  <div className="text-xl font-bold text-white mb-2">{box.val}</div>
+                  <div className="h-0.5 bg-slate-900 w-full">
+                    <div className={`h-full bg-${box.color}-500/50 w-2/3 group-hover:w-full transition-all duration-700`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 p-4 bg-cyan-500/5 border border-cyan-500/10 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full border border-cyan-500/30 flex items-center justify-center animate-spin-slow">
+                <Zap size={16} className="text-cyan-500" />
               </div>
-              <div className="text-center modern-card p-4 gradient-emerald">
-                <p className="text-3xl font-bold text-emerald-400 mb-1">{networkStatus.activeCameras.toLocaleString()}</p>
-                <p className="text-gray-300 text-sm font-medium">Active Cameras</p>
-              </div>
-              <div className="text-center modern-card p-4 gradient-amber">
-                <p className="text-3xl font-bold text-amber-400 mb-1">{networkStatus.scansPerHour.toLocaleString()}</p>
-                <p className="text-gray-300 text-sm font-medium">Scans/Hour</p>
-              </div>
-              <div className="text-center modern-card p-4 gradient-purple">
-                <p className="text-3xl font-bold text-purple-400 mb-1">{networkStatus.successfulMatches}</p>
-                <p className="text-gray-300 text-sm font-medium">Matches Today</p>
+              <div>
+                <div className="text-[10px] text-cyan-500 font-bold">GRID_ENCRYPTION_ACTIVE</div>
+                <div className="text-[8px] text-cyan-700 font-mono">HASH: 0x82...F92A | AES-CBC</div>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Recent Activity */}
-        <div className="modern-card p-8">
-          <div className="flex items-center gap-3 mb-8">
-            <Clock className="text-emerald-400" size={24} />
-            <h2 className="text-2xl font-bold text-white">Live Activity Feed</h2>
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse ml-2"></div>
+
+        {/* Live Feed HUD */}
+        <div className="modern-card p-8 min-h-[400px]">
+          <FuiCorner />
+          <div className="flex items-center gap-3 mb-8 border-b border-slate-800 pb-4">
+            <Clock className="text-emerald-500" size={20} />
+            <h2 className="text-xl font-bold text-white tracking-widest">REALTIME_SURVEILLANCE_FEED</h2>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse ml-2" />
           </div>
+
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={activity.id} className={`modern-card ${getActivityColor(activity.type)} p-6 animate-fade-in-up`}
-                   style={{ animationDelay: `${index * 0.1}s` }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    {getActivityIcon(activity.type)}
-                    <div>
-                      <p className="text-white font-semibold text-lg">
-                        {activity.type === 'found' && `Child Found: ${activity.child}`}
-                        {activity.type === 'missing' && `New Missing Report: ${activity.child}`}
-                        {activity.type === 'sighting' && `Citizen Sighting: ${activity.child}`}
-                        {activity.type === 'alert' && `Emergency Alert: ${activity.child}`}
-                      </p>
-                      <div className="flex items-center gap-4 mt-1">
-                        <p className="text-gray-400">{activity.location}</p>
-                        <span className="text-gray-500">•</span>
-                        <p className="text-gray-400">{activity.time}</p>
-                        {activity.confidence && (
-                          <>
-                            <span className="text-gray-500">•</span>
-                            <p className="text-emerald-400 font-medium">{activity.confidence}% confidence</p>
-                          </>
-                        )}
+            <AnimatePresence>
+              {recentActivity.map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-black/40 border border-slate-800/50 p-4 relative group hover:bg-slate-900/40 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                      <div className={`w-10 h-10 border border-slate-800 flex items-center justify-center`}>
+                        {getActivityIcon(activity.type)}
+                      </div>
+                      <div>
+                        <p className="text-white font-bold text-sm tracking-widest uppercase">
+                          {activity.type === 'found' && `RECOVERY_CONFIRMED: ${activity.child}`}
+                          {activity.type === 'missing' && `NEW_INGESTION: ${activity.child}`}
+                          {activity.type === 'sighting' && `CITIZEN_UPDATE: ${activity.child}`}
+                          {activity.type === 'alert' && `EMERGENCY_PROBE: ${activity.child}`}
+                        </p>
+                        <div className="flex items-center gap-4 mt-1 text-[10px] text-slate-500 font-mono">
+                          <span>LOC: {activity.location.toUpperCase()}</span>
+                          <span className="opacity-30">|</span>
+                          <span>TS: {activity.time.toUpperCase()}</span>
+                          {activity.confidence && (
+                            <>
+                              <span className="opacity-30">|</span>
+                              <span className="text-emerald-500/70">CONF: {activity.confidence}%</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <div className="text-[10px] text-slate-600 font-bold mb-1">PROCESSED_BY_NODE_{activity.id % 999}</div>
+                      <div className="h-1 w-20 bg-slate-900 overflow-hidden">
+                        <div className="h-full bg-cyan-500/30 w-full animate-pulse" />
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {activity.type === 'found' && <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-sm font-medium">Found</span>}
-                    {activity.type === 'missing' && <span className="px-3 py-1 bg-rose-500/20 text-rose-400 rounded-full text-sm font-medium">Missing</span>}
-                    {activity.type === 'sighting' && <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-sm font-medium">Sighting</span>}
-                    {activity.type === 'alert' && <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">Alert</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Emergency Section */}
-        <div className="mt-12">
-          <div className="modern-card gradient-rose p-10 text-center">
-            <h3 className="text-3xl font-bold text-white mb-4">Emergency Helplines</h3>
-            <p className="text-gray-300 mb-8 text-lg">24/7 Support for Missing Person Cases</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="modern-card p-6 gradient-amber">
-                <p className="text-4xl font-black text-amber-400 mb-2">1098</p>
-                <p className="text-gray-300 font-medium">Child Helpline</p>
-              </div>
-              <div className="modern-card p-6 gradient-cyan">
-                <p className="text-4xl font-black text-cyan-400 mb-2">100</p>
-                <p className="text-gray-300 font-medium">Police Emergency</p>
-              </div>
-              <div className="modern-card p-6 gradient-purple">
-                <p className="text-4xl font-black text-purple-400 mb-2">181</p>
-                <p className="text-gray-300 font-medium">Women Helpline</p>
-              </div>
-            </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </div>

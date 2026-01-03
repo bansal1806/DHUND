@@ -191,6 +191,51 @@ Focus on practical, actionable insights for search teams in India."""
                 "error": str(e),
                 "insights": f"Standard risk assessment for {age}-year-old missing from {location}. High priority case requiring immediate search deployment."
             }
+    async def generate_age_progression(self, image_path: str, current_age: int, target_age: int, 
+                                     environmental_factors: List[str] = None) -> Dict:
+        """Generate age-progressed variation with environmental context"""
+        try:
+            # Create a more detailed prompt based on environmental factors
+            factors_str = ", ".join(environmental_factors) if environmental_factors else "standard aging"
+            
+            prompt = f"A photo-realistic age progression of a child from age {current_age} to {target_age}. " \
+                     f"Consider these environmental factors: {factors_str}. " \
+                     f"The image should look like a real search photo, focusing on facial changes, " \
+                     f"skin texture, and realistic aging patterns under these conditions."
+            
+            response = openai.Image.create(
+                model="dall-e-3",
+                prompt=prompt,
+                n=1,
+                size="1024x1024",
+                quality="hd"
+            )
+            
+            return {
+                "success": True,
+                "image_url": response.data[0].url,
+                "prompt_used": prompt,
+                "target_age": target_age,
+                "factors_applied": environmental_factors
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def generate_batch_variations(self, image_path: str, current_age: int, target_age: int) -> List[Dict]:
+        """Generate multiple variations (Vision: 50+, implemented: 4 for efficiency)"""
+        scenarios = [
+            ["standard growth", "healthy environment"],
+            ["street life", "malnutrition", "sun exposure"],
+            ["physical trauma", "scarring", "distress"],
+            ["different hairstyle", "clothing change", "urban environment"]
+        ]
+        
+        variations = []
+        for scenario in scenarios:
+            res = await self.generate_age_progression(image_path, current_age, target_age, scenario)
+            variations.append(res)
+            
+        return variations
     
     def process_voice_report(self, audio_file_path: str) -> Dict:
         """Process voice report using Whisper"""

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Upload, User, Phone, MapPin, Clock, Camera, Eye, CheckCircle, X, Star, Shield, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Upload, User, Phone, MapPin, Clock, Camera, Eye, CheckCircle, X, Star, Shield, Zap, Terminal, Activity } from 'lucide-react';
 import { apiUrl } from '../config/api';
 
 const CitizenReport = () => {
@@ -48,15 +49,13 @@ const CitizenReport = () => {
         ...prev,
         photo: file
       }));
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onload = (e) => setImagePreview(e.target.result);
       reader.readAsDataURL(file);
 
-      // Simulate AI verification score
       setTimeout(() => {
-        setVerificationScore(Math.floor(Math.random() * 30) + 70); // 70-99%
+        setVerificationScore(Math.floor(Math.random() * 30) + 70);
       }, 1000);
     }
   };
@@ -86,7 +85,7 @@ const CitizenReport = () => {
       });
 
       setMessage('Citizen report submitted successfully! Report ID: #CR' + Date.now().toString().slice(-6));
-      setStep(4); // Success step
+      setStep(4);
     } catch (error) {
       setMessage('Error submitting report. Please try again.');
     } finally {
@@ -97,456 +96,314 @@ const CitizenReport = () => {
   const nextStep = () => setStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
+  const FuiCorner = () => (
+    <>
+      <div className="fui-corner fui-corner-tl" />
+      <div className="fui-corner fui-corner-tr" />
+      <div className="fui-corner fui-corner-bl" />
+      <div className="fui-corner fui-corner-br" />
+    </>
+  );
+
   const StepIndicator = () => (
-    <div className="flex items-center justify-center mb-12">
+    <div className="flex items-center justify-center mb-16 relative">
+      <div className="absolute inset-x-0 h-px bg-slate-800 top-1/2 -z-10" />
       {[1, 2, 3].map((stepNum) => (
-        <div key={stepNum} className="flex items-center">
-          <div className={`
-            w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg
-            ${step >= stepNum 
-              ? 'bg-gradient-to-br from-cyan-500 to-purple-500 text-white' 
-              : 'bg-gray-700 text-gray-400'
-            }
-          `}>
-            {stepNum}
-          </div>
-          {stepNum < 3 && (
-            <div className={`
-              w-16 h-1 mx-2
-              ${step > stepNum ? 'bg-gradient-to-r from-cyan-500 to-purple-500' : 'bg-gray-700'}
-            `} />
+        <div key={stepNum} className="flex items-center mx-10 relative">
+          <motion.div
+            animate={{
+              scale: step >= stepNum ? 1.1 : 1,
+              borderColor: step >= stepNum ? '#22d3ee' : '#1e293b'
+            }}
+            className={`
+                w-12 h-12 border-2 flex items-center justify-center bg-[#020617] relative z-10
+                ${step >= stepNum ? 'text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'text-slate-600'}
+            `}
+          >
+            <FuiCorner />
+            <span className="font-black text-sm">{stepNum.toString().padStart(2, '0')}</span>
+          </motion.div>
+          {step === stepNum && (
+            <motion.div
+              layoutId="active-step-glow"
+              className="absolute inset-0 bg-cyan-500/10 blur-xl -z-10"
+            />
           )}
         </div>
       ))}
     </div>
   );
 
-  const ConfidenceSlider = () => (
-    <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-300 mb-3">
-        <Star size={16} className="inline mr-2" />
-        How confident are you about this sighting? ({formData.confidence}/10)
-      </label>
-      <div className="relative">
-        <input
-          type="range"
-          name="confidence"
-          min="1"
-          max="10"
-          value={formData.confidence}
-          onChange={handleChange}
-          className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-        />
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
-          <span>Low</span>
-          <span>Medium</span>
-          <span>High</span>
-        </div>
-      </div>
-      <div className="text-center">
-        <span className={`
-          px-4 py-2 rounded-full text-sm font-medium
-          ${formData.confidence <= 3 ? 'bg-rose-500/20 text-rose-400' :
-            formData.confidence <= 7 ? 'bg-amber-500/20 text-amber-400' :
-            'bg-emerald-500/20 text-emerald-400'
-          }
-        `}>
-          {formData.confidence <= 3 ? 'Low Confidence' :
-           formData.confidence <= 7 ? 'Medium Confidence' :
-           'High Confidence'}
-        </span>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      {/* Animated Background */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-2/3 left-1/2 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '1s'}}></div>
-      </div>
+    <div className="min-h-screen bg-[#020617] text-white overflow-hidden relative font-mono selection:bg-cyan-500/30">
+      <div className="hud-overlay" />
+      <div className="scanline" />
+      <div className="fixed inset-0 cyber-grid opacity-10 pointer-events-none" />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <Eye className="text-cyan-400" size={32} />
-            <h1 className="text-4xl font-black text-gradient-cyan">Citizen Sighting Report</h1>
+      <div className="relative z-10 max-w-4xl mx-auto px-6 lg:px-8 py-12">
+        {/* Header HUD */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-3 px-4 py-1 border border-cyan-500/30 bg-cyan-500/5 mb-6">
+            <Activity size={14} className="text-cyan-500 animate-pulse" />
+            <span className="text-[10px] font-bold tracking-[0.3em] text-cyan-500">INITIATE_SIGHTING_PROTOCOL</span>
           </div>
-          <p className="text-xl text-gray-400">
-            Help us reunite families by reporting sightings of missing persons
+          <h1 className="text-5xl font-black hologram-text mb-4">CITIZEN_ENTRY</h1>
+          <p className="text-slate-500 text-sm max-w-xl mx-auto font-mono">
+            Contribute to the neural grid. Every data point accelerates recovery.
+            Verified identities ensure rapid response.
           </p>
-          <div className="mt-6 modern-card gradient-cyan p-4">
-            <p className="text-cyan-200 text-sm">
-              🛡️ Your identity is protected. All reports are verified through AI analysis.
-            </p>
-          </div>
         </div>
 
         {step < 4 && <StepIndicator />}
 
-        <div className="modern-card p-8">
-          {step === 1 && (
-            <div className="space-y-8">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Type of Report</h2>
-                <p className="text-gray-400">What kind of sighting or information do you have?</p>
-              </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="modern-card p-10 bg-black/40 border-slate-800"
+          >
+            <FuiCorner />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {sightingTypes.map((type) => {
-                  const Icon = type.icon;
-                  return (
-                    <div
-                      key={type.id}
-                      onClick={() => setFormData(prev => ({ ...prev, sightingType: type.id }))}
-                      className={`
-                        modern-card p-6 cursor-pointer transition-all duration-300 hover:scale-105
-                        ${formData.sightingType === type.id 
-                          ? `gradient-${type.color} glow-${type.color}` 
-                          : 'hover:border-purple-500/50'
-                        }
-                      `}
-                    >
-                      <div className="text-center">
-                        <Icon className={`mx-auto mb-4 text-${type.color}-400`} size={32} />
-                        <h3 className="text-white font-bold text-lg mb-2">{type.label}</h3>
-                        <p className="text-gray-400 text-sm">{type.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Child's Name (if known)
-                  </label>
-                  <input
-                    type="text"
-                    name="childName"
-                    value={formData.childName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                    placeholder="Enter name if you know it"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Estimated Age
-                  </label>
-                  <input
-                    type="number"
-                    name="estimatedAge"
-                    value={formData.estimatedAge}
-                    onChange={handleChange}
-                    className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                    placeholder="Approximate age"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Description of Person Seen *
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  required
-                  rows={4}
-                  className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                  placeholder="Describe what the person looked like, what they were wearing, behavior, etc."
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={nextStep}
-                  disabled={!formData.sightingType || !formData.description}
-                  className="btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next Step
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-8">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Location & Time Details</h2>
-                <p className="text-gray-400">When and where did you see this person?</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    <MapPin size={16} className="inline mr-2" />
-                    Location of Sighting *
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                    placeholder="e.g., Near McDonald's, Dadar Station"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    <Clock size={16} className="inline mr-2" />
-                    Date & Time of Sighting *
-                  </label>
-                  <input
-                    type="datetime-local"
-                    name="sightingTime"
-                    value={formData.sightingTime}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <ConfidenceSlider />
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  <Camera size={16} className="inline mr-2" />
-                  Photo Evidence (Optional)
-                </label>
-                <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-cyan-500 transition-colors relative">
-                  {imagePreview ? (
-                    <div className="space-y-4">
-                      <div className="relative inline-block">
-                        <img src={imagePreview} alt="Preview" className="max-w-xs max-h-48 rounded-lg" />
-                        <button
-                          onClick={removeImage}
-                          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                      {verificationScore > 0 && (
-                        <div className="modern-card gradient-emerald p-4">
-                          <div className="flex items-center gap-3">
-                            <Shield className="text-emerald-400" size={20} />
-                            <div>
-                              <p className="text-emerald-200 font-medium">AI Verification Score</p>
-                              <p className="text-emerald-400 font-bold">{verificationScore}% Match Potential</p>
-                            </div>
+            {step === 1 && (
+              <div className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {sightingTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <div
+                        key={type.id}
+                        onClick={() => setFormData(prev => ({ ...prev, sightingType: type.id }))}
+                        className={`
+                          modern-card p-6 cursor-pointer transition-all border-slate-800 bg-slate-900/10 relative group
+                          ${formData.sightingType === type.id
+                            ? 'border-cyan-500/50 bg-cyan-500/5'
+                            : 'hover:border-slate-600'
+                          }
+                        `}
+                      >
+                        <FuiCorner />
+                        <div className="flex gap-4 items-center">
+                          <div className={`p-3 border border-${type.color}-500/30 ${formData.sightingType === type.id ? `bg-${type.color}-500/20` : 'bg-black/40'}`}>
+                            <Icon className={`text-${type.color}-500`} size={24} />
+                          </div>
+                          <div>
+                            <h3 className="text-white font-bold text-xs tracking-widest">{type.label.toUpperCase()}</h3>
+                            <p className="text-slate-500 text-[10px] mt-1">{type.desc}</p>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <Upload className="mx-auto text-gray-400 mb-4" size={48} />
-                      <p className="text-gray-400 mb-2">Upload photo if available</p>
-                      <p className="text-gray-500 text-sm">PNG, JPG up to 10MB</p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Additional Information
-                </label>
-                <textarea
-                  name="additionalInfo"
-                  value={formData.additionalInfo}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                  placeholder="Any other details that might be helpful..."
-                />
-              </div>
-
-              <div className="flex justify-between">
-                <button
-                  onClick={prevStep}
-                  className="btn-secondary px-8 py-3 text-lg"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={nextStep}
-                  className="btn-primary px-8 py-3 text-lg"
-                >
-                  Next Step
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-8">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Contact Information</h2>
-                <p className="text-gray-400">How can we reach you for follow-up questions?</p>
-              </div>
-
-              <div className="modern-card gradient-amber p-6 mb-6">
-                <div className="flex items-center gap-3">
-                  <Shield className="text-amber-400" size={24} />
-                  <div>
-                    <h3 className="text-amber-200 font-bold">Privacy Protection</h3>
-                    <p className="text-amber-300 text-sm">Your information is encrypted and only used for verification purposes.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 mb-6">
-                <input
-                  type="checkbox"
-                  name="anonymous"
-                  checked={formData.anonymous}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-cyan-500 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
-                />
-                <label className="text-gray-300">Submit this report anonymously</label>
-              </div>
-
-              {!formData.anonymous && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-3">
-                        <User size={16} className="inline mr-2" />
-                        Your Name *
-                      </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-800/50">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Target Identity</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
                       <input
                         type="text"
-                        name="reporterName"
-                        value={formData.reporterName}
+                        name="childName"
+                        value={formData.childName}
                         onChange={handleChange}
-                        required={!formData.anonymous}
-                        className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                        placeholder="Enter your full name"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-3">
-                        <Phone size={16} className="inline mr-2" />
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        name="reporterPhone"
-                        value={formData.reporterPhone}
-                        onChange={handleChange}
-                        required={!formData.anonymous}
-                        className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                        placeholder="+91 9876543210"
+                        className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                        placeholder="NAME_IF_KNOWN"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      Email Address (Optional)
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Est. Latency (Age)</label>
                     <input
-                      type="email"
-                      name="reporterEmail"
-                      value={formData.reporterEmail}
+                      type="number"
+                      name="estimatedAge"
+                      value={formData.estimatedAge}
                       onChange={handleChange}
-                      className="w-full px-4 py-4 bg-black/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500 transition-colors"
-                      placeholder="your.email@example.com"
+                      className="w-full px-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                      placeholder="APPROX_AGE"
                     />
                   </div>
                 </div>
-              )}
 
-              {message && (
-                <div className={`modern-card p-4 ${
-                  message.includes('Error') 
-                    ? 'gradient-rose text-rose-200'
-                    : 'gradient-emerald text-emerald-200'
-                }`}>
-                  {message}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Subject Description *</label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    required
+                    rows={4}
+                    className="w-full px-6 py-4 bg-black/40 border border-slate-800 text-slate-300 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                    placeholder="ENTER_VISUAL_DATA_HERE..."
+                  />
                 </div>
-              )}
 
-              <div className="flex justify-between">
-                <button
-                  onClick={prevStep}
-                  className="btn-secondary px-8 py-3 text-lg"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="btn-primary px-8 py-3 text-lg flex items-center gap-3"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Submitting...
-                    </>
-                  ) : (
-                    'Submit Report'
-                  )}
-                </button>
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={nextStep}
+                    disabled={!formData.sightingType || !formData.description}
+                    className="modern-card px-10 py-3 bg-cyan-500/10 border-cyan-500/40 text-cyan-400 text-xs font-bold tracking-widest hover:bg-cyan-500 hover:text-white disabled:opacity-30 transition-all uppercase"
+                  >
+                    Proceed_to_Location
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {step === 4 && (
-            <div className="text-center space-y-8">
-              <div className="flex justify-center">
-                <CheckCircle className="text-emerald-400" size={80} />
-              </div>
-              <h2 className="text-3xl font-bold text-white">Report Submitted Successfully!</h2>
-              <div className="modern-card gradient-emerald p-6">
-                <p className="text-emerald-200 text-lg">{message}</p>
-              </div>
-              <div className="space-y-6">
-                <div className="modern-card gradient-cyan p-6">
-                  <h3 className="text-cyan-200 font-bold text-lg mb-2">What happens next?</h3>
-                  <div className="text-left space-y-2 text-cyan-300">
-                    <p>✓ Your report is being analyzed by our AI system</p>
-                    <p>✓ Authorities will be notified if this is a high-confidence match</p>
-                    <p>✓ You'll receive updates if we need more information</p>
-                    <p>✓ Your contribution helps reunite families</p>
+            {step === 2 && (
+              <div className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Spatial Coordinates *</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                      <input
+                        type="text"
+                        name="location"
+                        value={formData.location}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                        placeholder="GEO_LOCATION_REF"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Temporal Marker *</label>
+                    <div className="relative">
+                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                      <input
+                        type="datetime-local"
+                        name="sightingTime"
+                        value={formData.sightingTime}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="flex justify-center gap-4">
-                  <button
-                    onClick={() => window.location.href = '/dashboard'}
-                    className="btn-primary px-8 py-3"
+
+                <div className="space-y-6 pt-6 border-t border-slate-800/50">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Signal Confidence</label>
+                    <span className="text-xl font-black hologram-text text-cyan-400">{formData.confidence}/10</span>
+                  </div>
+                  <input
+                    type="range"
+                    name="confidence"
+                    min="1"
+                    max="10"
+                    value={formData.confidence}
+                    onChange={handleChange}
+                    className="w-full h-1 bg-slate-900 appearance-none cursor-pointer range-cyan"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Visual Evidence Upload</label>
+                  <div className="border border-dashed border-slate-800 bg-black/20 p-8 text-center relative group hover:border-cyan-500/30 transition-all">
+                    {imagePreview ? (
+                      <div className="relative inline-block">
+                        <img src={imagePreview} alt="Preview" className="max-w-xs max-h-48 grayscale hover:grayscale-0 transition-all border border-slate-700" />
+                        <div className="absolute inset-0 border border-cyan-500/20 pointer-events-none" />
+                        <button onClick={removeImage} className="absolute -top-3 -right-3 w-8 h-8 bg-rose-500/20 border border-rose-500/50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="py-6">
+                        <Camera className="mx-auto text-slate-700 mb-4 group-hover:text-cyan-500 transition-colors" size={40} />
+                        <p className="text-slate-500 text-[10px] tracking-widest">DRAG_DROP_OR_CLICK_TO_UPLOAD</p>
+                      </div>
+                    )}
+                    <input type="file" onChange={handleFileChange} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <button onClick={prevStep} className="text-[10px] font-bold text-slate-600 hover:text-slate-400 uppercase tracking-widest">Back</button>
+                  <button onClick={nextStep} className="modern-card px-10 py-3 bg-cyan-500/10 border-cyan-500/40 text-cyan-400 text-xs font-bold tracking-widest hover:bg-cyan-500 hover:text-white transition-all uppercase">Enter_Contact_Data</button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-10">
+                <div className="modern-card p-4 border-amber-500/30 bg-amber-500/5 flex gap-4 items-center">
+                  <Shield size={20} className="text-amber-500" />
+                  <div>
+                    <div className="text-[10px] font-bold text-amber-500 tracking-widest uppercase">Neural Privacy Active</div>
+                    <p className="text-amber-700 text-[8px] font-mono">Your identification vector is hashed and stored separately from report data.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div
+                    onClick={() => setFormData(prev => ({ ...prev, anonymous: !prev.anonymous }))}
+                    className={`w-4 h-4 border ${formData.anonymous ? 'border-cyan-500 bg-cyan-500/20' : 'border-slate-800'} cursor-pointer flex items-center justify-center`}
                   >
-                    View Dashboard
-                  </button>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="btn-secondary px-8 py-3"
+                    {formData.anonymous && <div className="w-2 h-2 bg-cyan-400 shadow-[0_0_5px_cyan]" />}
+                  </div>
+                  <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase cursor-pointer">Submit anonymously</label>
+                </div>
+
+                {!formData.anonymous && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="space-y-8 pt-6 border-t border-slate-800/50"
                   >
-                    Submit Another Report
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Full Name *</label>
+                        <input
+                          type="text"
+                          name="reporterName"
+                          value={formData.reporterName}
+                          onChange={handleChange}
+                          required={!formData.anonymous}
+                          className="w-full px-4 py-4 bg-black/40 border border-slate-800 text-slate-300 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                          placeholder="OPERATOR_NAME"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Neural Link (Phone) *</label>
+                        <div className="relative">
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                          <input
+                            type="tel"
+                            name="reporterPhone"
+                            value={formData.reporterPhone}
+                            onChange={handleChange}
+                            required={!formData.anonymous}
+                            className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-slate-300 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                            placeholder="+91_MOBILE_HASH"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="flex justify-between pt-8">
+                  <button onClick={prevStep} className="text-[10px] font-bold text-slate-600 hover:text-slate-400 uppercase tracking-widest">Back</button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="modern-card px-12 py-4 bg-emerald-500/10 border-emerald-500/40 text-emerald-400 text-xs font-bold tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all uppercase flex items-center gap-3"
+                  >
+                    {isSubmitting ? <Activity size={16} className="animate-spin" /> : <Terminal size={16} />}
+                    {isSubmitting ? 'UPLOADING_DATA...' : 'COMMIT_REPORT'}
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

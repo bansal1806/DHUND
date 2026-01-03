@@ -19,11 +19,11 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
       0.1,
       1000
     );
-    
-    const renderer = new THREE.WebGLRenderer({ 
-      alpha: true, 
+
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
       antialias: true,
-      powerPreference: "high-performance" 
+      powerPreference: "high-performance"
     });
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     renderer.setClearColor(0x000000, 0);
@@ -32,34 +32,34 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
     // Create enhanced face geometry
     const geometry = new THREE.SphereGeometry(1, 32, 32);
     const positions = geometry.attributes.position.array;
-    
+
     // Modify geometry to create realistic face shape
     for (let i = 0; i < positions.length; i += 3) {
       const x = positions[i];
       const y = positions[i + 1];
       const z = positions[i + 2];
-      
+
       const phi = Math.atan2(y, x);
       const theta = Math.acos(z);
-      
+
       // Eye sockets
       if (theta > 1.2 && theta < 1.6) {
         if ((phi > -0.7 && phi < -0.3) || (phi > 0.3 && phi < 0.7)) {
           positions[i + 2] = z - 0.15;
         }
       }
-      
+
       // Nose bridge
       if (theta > 1.3 && theta < 1.8 && phi > -0.2 && phi < 0.2) {
         positions[i + 2] = z + 0.1;
       }
-      
+
       // Mouth area
       if (theta > 2.0 && theta < 2.4 && phi > -0.4 && phi < 0.4) {
         positions[i + 2] = z - 0.08;
       }
     }
-    
+
     geometry.attributes.position.needsUpdate = true;
     geometry.computeVertexNormals();
 
@@ -81,7 +81,7 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
     // Face mesh
     const faceMesh = new THREE.Mesh(geometry, faceMaterial);
     const wireframeMesh = new THREE.Mesh(geometry, wireframeMaterial);
-    
+
     scene.add(faceMesh);
     scene.add(wireframeMesh);
 
@@ -112,7 +112,7 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
     let scanLine = null;
     if (isScanning) {
       const scanGeometry = new THREE.PlaneGeometry(3, 0.02);
-      const scanMaterial = new THREE.MeshBasicMaterial({
+      const scanMaterial = new THREE.MeshPhongMaterial({
         color: 0x06b6d4,
         transparent: true,
         opacity: 0.8,
@@ -128,11 +128,11 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
     const pointLight1 = new THREE.PointLight(0x06b6d4, 0.5);
     const pointLight2 = new THREE.PointLight(0x8b5cf6, 0.3);
-    
+
     directionalLight.position.set(2, 2, 5);
     pointLight1.position.set(-2, 2, 2);
     pointLight2.position.set(2, -2, 2);
-    
+
     scene.add(ambientLight);
     scene.add(directionalLight);
     scene.add(pointLight1);
@@ -149,10 +149,10 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
     // Animation loop
     const animate = () => {
       const time = Date.now() * 0.001;
-      
+
       if (faceRef.current) {
         const { faceMesh, wireframeMesh, landmarkMeshes, scanLine } = faceRef.current;
-        
+
         // Rotate face
         if (!isScanning) {
           faceMesh.rotation.y = Math.sin(time * 0.3) * 0.2;
@@ -166,7 +166,7 @@ const SimpleFaceModel = ({ scanningProgress = 0, isScanning = false, size = "sma
 
         // Animate landmarks
         landmarkMeshes.forEach((mesh, i) => {
-          mesh.material.opacity = isScanning ? 
+          mesh.material.opacity = isScanning ?
             0.6 + Math.sin(time * 2 + i * 0.3) * 0.3 : 0.5;
         });
 

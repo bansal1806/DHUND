@@ -10,6 +10,7 @@ import json
 from models import MissingPerson, SearchResult, CitizenReport
 from ai_engine import AIEngine
 from database import Database
+from cloud_storage import CloudStorage
 
 app = FastAPI(title="DHUND API", description="Missing Person AI Recovery System")
 
@@ -25,6 +26,7 @@ app.add_middleware(
 # Initialize components
 ai_engine = AIEngine()
 db = Database()
+cloud = CloudStorage()
 
 # Serve uploaded files
 # Use /tmp for Vercel serverless (read-only filesystem except /tmp)
@@ -62,16 +64,24 @@ async def report_missing_person(
         )
         
         # Process with AI
-        ai_analysis = ai_engine.analyze_missing_person(photo_path, age, description)
+        analysis_results = await ai_engine.analyze_missing_person(photo_path, age, description)
         
         # Save to database
-        person_id = db.save_missing_person(missing_person, ai_analysis)
+        person_id = db.save_missing_person(missing_person, analysis_results)
         
+        # Upload photo to cloud
+        cloud_url = cloud.upload_image(photo_path)
+        if cloud_url:
+            # Update database with cloud path if available
+            # (Note: In a full implementation, we'd update photo_path in DB)
+            pass
+
         return {
             "status": "success",
             "person_id": person_id,
             "message": f"Missing person report created for {name}",
-            "ai_analysis": ai_analysis
+            "ai_analysis": analysis_results,
+            "cloud_url": cloud_url
         }
     
     except Exception as e:
@@ -143,9 +153,14 @@ async def citizen_report_sighting(
         with open(sighting_path, "wb") as buffer:
             buffer.write(await sighting_photo.read())
         
-        # Verify sighting with AI
-        verification_result = ai_engine.verify_citizen_sighting(
-            person_id, sighting_path, location, description
+        # Get person data (need face encoding)
+        person_data = db.get_missing_person(person_id)
+        if not person_data:
+            raise HTTPException(status_code=404, detail="Person not found")
+
+        # Verify sighting with AI using actual encodings
+        verification = await ai_engine.verify_citizen_sighting(
+            person_data['face_encoding'], sighting_path, location, description
         )
         
         # Save citizen report
@@ -155,16 +170,25 @@ async def citizen_report_sighting(
             description=description,
             reporter_phone=reporter_phone,
             sighting_photo=sighting_path,
-            verification_score=verification_result['confidence'],
+            verification_score=verification['confidence'],
             report_time=datetime.now()
         )
         
         report_id = db.save_citizen_report(report)
         
+        # Trigger real-time alert via Supabase
+        if verification['verified']:
+            cloud.send_realtime_alert("sightings", {
+                "person_id": person_id,
+                "location": location,
+                "confidence": verification['confidence'],
+                "timestamp": datetime.now().isoformat()
+            })
+
         return {
             "status": "success",
             "report_id": report_id,
-            "verification": verification_result,
+            "verification": verification,
             "next_actions": [
                 "Alert sent to local police",
                 "Family notified",
@@ -232,4 +256,4 @@ async def demo_match_found(person_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
