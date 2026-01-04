@@ -23,5 +23,18 @@ backend/__pycache__/
 backend/uploads/
 backend/*.db
 start_demo.bat
-a
+
+# Bundle Optimization (Exclude frontend from backend functions)
+frontend/
+.git/
+.antigravity/
+.gemini/
+node_modules/
+package-lock.json
+*.md
+Pipfile*
+!api/**
+!backend/**
+!requirements.txt
+!.env
 

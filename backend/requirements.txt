@@ -13,5 +13,4 @@ python-dotenv==1.0.0
 aiofiles==23.2.1
 mangum==0.17.0
 supabase==2.3.0
-mediapipe>=0.10.14
-# Removed dlib/face-recognition for portability
+# Removed dlib/face-recognition and mediapipe for portability and bundle size
