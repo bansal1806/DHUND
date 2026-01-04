@@ -3,24 +3,21 @@ import { Search, Users, MapPin, Clock, AlertTriangle, CheckCircle, TrendingUp, A
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import supabase from '../supabase';
+import apiService from '../services/apiService';
 
 const Dashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    missingChildren: 2847,
-    foundChildren: 1923,
-    activeSearches: 156,
-    communityReports: 4521,
-    successRate: 67.8,
-    avgResponseTime: 45
+    missingChildren: 0,
+    foundChildren: 0,
+    activeSearches: 0,
+    communityReports: 0,
+    successRate: 0,
+    avgResponseTime: 0
   });
 
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, type: 'found', child: 'Priya Sharma', location: 'Mumbai', time: '2 hours ago', confidence: 94 },
-    { id: 2, type: 'missing', child: 'Arjun Patel', location: 'Delhi', time: '4 hours ago', age: 7 },
-    { id: 3, type: 'sighting', child: 'Rahul Kumar', location: 'Bangalore', time: '6 hours ago', status: 'verified' },
-    { id: 4, type: 'found', child: 'Ananya Singh', location: 'Chennai', time: '8 hours ago', confidence: 87 },
-    { id: 5, type: 'alert', child: 'Vikash Joshi', location: 'Pune', time: '1 day ago', priority: 'high' }
-  ]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [missingPersons, setMissingPersons] = useState([]);
 
   const [networkStatus, setNetworkStatus] = useState({
     totalCameras: 15847,
@@ -28,6 +25,63 @@ const Dashboard = () => {
     scansPerHour: 2847,
     successfulMatches: 156
   });
+
+  // Load data from backend
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Load missing persons
+        const missingResponse = await apiService.getMissingPersons();
+        if (missingResponse.status === 'success') {
+          const persons = missingResponse.data || [];
+          setMissingPersons(persons);
+          
+          // Update stats
+          const foundCount = persons.filter(p => p.status === 'found').length;
+          setStats(prev => ({
+            ...prev,
+            missingChildren: persons.length,
+            foundChildren: foundCount,
+            activeSearches: persons.length - foundCount,
+            successRate: persons.length > 0 ? (foundCount / persons.length * 100).toFixed(1) : 0
+          }));
+
+          // Create recent activity from missing persons (last 5)
+          const recentPersons = persons.slice(0, 5).map((person, index) => ({
+            id: person.id || index + 1,
+            type: person.status === 'found' ? 'found' : 'missing',
+            child: person.name,
+            location: person.description?.split(',')[0] || 'Unknown',
+            time: new Date(person.reported_date).toLocaleString(),
+            confidence: 95,
+            age: person.age
+          }));
+          setRecentActivity(recentPersons);
+        }
+
+        // Load sightings for community reports count
+        try {
+          const sightingsResponse = await apiService.getSightings();
+          if (sightingsResponse.status === 'success') {
+            const sightingsData = sightingsResponse.data || [];
+            setStats(prev => ({
+              ...prev,
+              communityReports: Array.isArray(sightingsData) ? sightingsData.length : 0
+            }));
+          }
+        } catch (err) {
+          console.error('Error loading sightings:', err);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Fui Corner Helper
   const FuiCorner = () => (
@@ -102,32 +156,32 @@ const Dashboard = () => {
       <div className="scanline" />
       <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-10">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-28 pb-10">
         {/* Header HUD */}
-        <div className="mb-12 border-b border-cyan-500/20 pb-8 flex justify-between items-end">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Terminal size={18} className="text-cyan-500" />
-              <span className="text-[10px] font-bold text-cyan-500 tracking-[0.2em]">COMMAND_CENTER_v4.2</span>
+        <div className="mb-8 sm:mb-12 border-b border-cyan-500/20 pb-6 sm:pb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <Terminal size={16} className="sm:w-[18px] sm:h-[18px] text-cyan-500 flex-shrink-0" />
+              <span className="text-[9px] sm:text-[10px] font-bold text-cyan-500 tracking-[0.2em]">COMMAND_CENTER_v4.2</span>
             </div>
-            <h1 className="text-5xl font-black hologram-text text-white">SYSTEM_DASHBOARD</h1>
-            <p className="text-sm text-slate-500 mt-2 max-w-xl font-mono">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black hologram-text text-white">SYSTEM_DASHBOARD</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-xl font-mono">
               Monitoring 15,842 federated neural nodes across national sectors.
               Spatial intelligence active.
             </p>
           </div>
-          <div className="flex gap-4">
-            <Link to="/report-missing" className="modern-card py-2 px-6 border-rose-500/30 text-rose-500 text-xs hover:bg-rose-500/10 flex items-center gap-2">
-              <AlertTriangle size={14} /> NEW_REPORT
+          <div className="flex gap-2 sm:gap-4 flex-wrap">
+            <Link to="/report-missing" className="modern-card py-2 px-4 sm:px-6 border-rose-500/30 text-rose-500 text-[10px] sm:text-xs hover:bg-rose-500/10 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+              <AlertTriangle size={12} className="sm:w-[14px] sm:h-[14px]" /> NEW_REPORT
             </Link>
-            <Link to="/demo" className="modern-card py-2 px-6 border-cyan-500/30 text-cyan-500 text-xs hover:bg-cyan-500/10 flex items-center gap-2 animate-pulse-glow">
-              <Zap size={14} /> LAUNCH_SIM
+            <Link to="/demo" className="modern-card py-2 px-4 sm:px-6 border-cyan-500/30 text-cyan-500 text-[10px] sm:text-xs hover:bg-cyan-500/10 flex items-center gap-1.5 sm:gap-2 animate-pulse-glow whitespace-nowrap">
+              <Zap size={12} className="sm:w-[14px] sm:h-[14px]" /> LAUNCH_SIM
             </Link>
           </div>
         </div>
 
         {/* HUD Statistics Tiles */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           {[
             { label: "MISSING_SIGNATURES", val: stats.missingChildren, color: "rose", icon: Users },
             { label: "VERIFIED_RECOVERIES", val: stats.foundChildren, color: "emerald", icon: CheckCircle },
@@ -156,7 +210,7 @@ const Dashboard = () => {
         </div>
 
         {/* Diagnostics & Network HUD */}
-        <div className="grid grid-cols-12 gap-8 mb-12">
+        <div className="grid grid-cols-12 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12">
           {/* Performance HUD */}
           <div className="col-span-12 lg:col-span-7 modern-card p-8">
             <FuiCorner />
@@ -235,50 +289,61 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-4">
-            <AnimatePresence>
-              {recentActivity.map((activity, index) => (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-black/40 border border-slate-800/50 p-4 relative group hover:bg-slate-900/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                      <div className={`w-10 h-10 border border-slate-800 flex items-center justify-center`}>
-                        {getActivityIcon(activity.type)}
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+                <p className="text-slate-500 mt-4 text-sm">LOADING_NEURAL_DATA...</p>
+              </div>
+            ) : recentActivity.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-slate-500 text-sm">NO_ACTIVITY_DATA_AVAILABLE</p>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {recentActivity.map((activity, index) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-black/40 border border-slate-800/50 p-4 relative group hover:bg-slate-900/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                        <div className={`w-10 h-10 border border-slate-800 flex items-center justify-center`}>
+                          {getActivityIcon(activity.type)}
+                        </div>
+                        <div>
+                          <p className="text-white font-bold text-sm tracking-widest uppercase">
+                            {activity.type === 'found' && `RECOVERY_CONFIRMED: ${activity.child}`}
+                            {activity.type === 'missing' && `NEW_INGESTION: ${activity.child}`}
+                            {activity.type === 'sighting' && `CITIZEN_UPDATE: ${activity.child}`}
+                            {activity.type === 'alert' && `EMERGENCY_PROBE: ${activity.child}`}
+                          </p>
+                          <div className="flex items-center gap-4 mt-1 text-[10px] text-slate-500 font-mono">
+                            <span>LOC: {(activity.location || 'UNKNOWN').toUpperCase()}</span>
+                            <span className="opacity-30">|</span>
+                            <span>TS: {activity.time}</span>
+                            {activity.confidence && (
+                              <>
+                                <span className="opacity-30">|</span>
+                                <span className="text-emerald-500/70">CONF: {activity.confidence}%</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-white font-bold text-sm tracking-widest uppercase">
-                          {activity.type === 'found' && `RECOVERY_CONFIRMED: ${activity.child}`}
-                          {activity.type === 'missing' && `NEW_INGESTION: ${activity.child}`}
-                          {activity.type === 'sighting' && `CITIZEN_UPDATE: ${activity.child}`}
-                          {activity.type === 'alert' && `EMERGENCY_PROBE: ${activity.child}`}
-                        </p>
-                        <div className="flex items-center gap-4 mt-1 text-[10px] text-slate-500 font-mono">
-                          <span>LOC: {activity.location.toUpperCase()}</span>
-                          <span className="opacity-30">|</span>
-                          <span>TS: {activity.time.toUpperCase()}</span>
-                          {activity.confidence && (
-                            <>
-                              <span className="opacity-30">|</span>
-                              <span className="text-emerald-500/70">CONF: {activity.confidence}%</span>
-                            </>
-                          )}
+                      <div className="flex flex-col items-end">
+                        <div className="text-[10px] text-slate-600 font-bold mb-1">PROCESSED_BY_NODE_{activity.id % 999}</div>
+                        <div className="h-1 w-20 bg-slate-900 overflow-hidden">
+                          <div className="h-full bg-cyan-500/30 w-full animate-pulse" />
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <div className="text-[10px] text-slate-600 font-bold mb-1">PROCESSED_BY_NODE_{activity.id % 999}</div>
-                      <div className="h-1 w-20 bg-slate-900 overflow-hidden">
-                        <div className="h-full bg-cyan-500/30 w-full animate-pulse" />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>

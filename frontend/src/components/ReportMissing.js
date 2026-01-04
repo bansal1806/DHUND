@@ -55,25 +55,39 @@ const ReportMissing = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setMessage('');
+
+    // Validate required fields
+    if (!formData.name || !formData.age || !formData.description || !formData.photo) {
+      setMessage('Error: Please fill in all required fields (Name, Age, Description, and Photo)');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const formDataToSend = new FormData();
-      Object.keys(formData).forEach(key => {
-        if (formData[key]) {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
+      // Backend expects: name, age, description, photo
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('age', parseInt(formData.age));
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('photo', formData.photo);
 
-      await axios.post(apiUrl('api/report-missing'), formDataToSend, {
+      const response = await axios.post(apiUrl('api/report-missing'), formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      setMessage('Missing person report submitted successfully! Case ID: #MP' + Date.now().toString().slice(-6));
-      setStep(4); // Success step
+      if (response.data.status === 'success') {
+        setMessage(`Missing person report submitted successfully! Person ID: #${response.data.person_id}`);
+        setStep(4); // Success step
+      } else {
+        setMessage('Error submitting report. Please try again.');
+      }
     } catch (error) {
-      setMessage('Error submitting report. Please try again.');
+      const errorMsg = error.response?.data?.detail || error.message || 'Error submitting report. Please try again.';
+      setMessage(`Error: ${errorMsg}`);
+      console.error('Report submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +128,7 @@ const ReportMissing = () => {
         <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 lg:px-8 py-8">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-28 pb-8">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-4 mb-6">
@@ -276,7 +290,7 @@ const ReportMissing = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">
                   <Camera size={16} className="inline mr-2" />
-                  Recent Photo
+                  Recent Photo *
                 </label>
                 <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-purple-500 transition-colors relative">
                   {imagePreview ? (

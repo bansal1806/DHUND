@@ -1,36 +1,42 @@
 @echo off
 echo ========================================
-echo Starting DHUND Demo Environment
+echo Starting DHUND Backend API Server
 echo ========================================
 echo.
 
 echo Starting Backend Server...
-start "DHUND Backend" cmd /k "cd backend && C:\Users\Admin\AppData\Local\Programs\Python\Python313\python.exe main.py"
+set TF_ENABLE_ONEDNN_OPTS=0
+set TF_CPP_MIN_LOG_LEVEL=2
 
-echo Waiting for backend to start...
-timeout /t 5 /nobreak >nul
+REM Use py (Python Launcher) if available, otherwise fallback to python
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=py
+) else (
+    set PYTHON_CMD=python
+)
 
-echo Starting Frontend Server...
-start "DHUND Frontend" cmd /k "cd frontend && npm start"
+%PYTHON_CMD% -m backend.main
+
+if errorlevel 1 (
+    echo.
+    echo ERROR: Failed to start backend server
+    echo Please ensure Python is installed and backend dependencies are installed:
+    echo   cd backend
+    echo   pip install -r requirements.txt
+    echo.
+    pause
+    exit /b 1
+)
 
 echo.
 echo ========================================
-echo DHUND Demo Started!
+echo DHUND Backend API Started!
 echo ========================================
 echo.
 echo Backend API: http://localhost:8000
-echo Frontend App: http://localhost:3000
 echo API Docs: http://localhost:8000/docs
+echo Interactive API: http://localhost:8000/redoc
 echo.
-echo Live Demo: http://localhost:3000/demo
+echo Press Ctrl+C to stop the server
 echo.
-echo Press any key to open the application...
-pause >nul
-
-start http://localhost:3000
-
-echo.
-echo Demo is ready for presentation!
-echo.
-pause
-

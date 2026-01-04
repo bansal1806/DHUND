@@ -7,6 +7,8 @@ import CitizenReport from './components/CitizenReport';
 import EmergencyAlert from './components/EmergencyAlert';
 import Header from './components/Header';
 import Demo from './components/Demo';
+import Sightings from './components/Sightings';
+import AgeProgression from './components/AgeProgression';
 
 function App() {
   const [currentDemo, setCurrentDemo] = useState(null);
@@ -23,6 +25,8 @@ function App() {
           <Route path="/citizen-report" element={<CitizenReport />} />
           <Route path="/emergency-alert" element={<EmergencyAlert />} />
           <Route path="/demo" element={<Demo />} />
+          <Route path="/sightings" element={<Sightings />} />
+          <Route path="/age-progression" element={<AgeProgression />} />
           {/* Legacy routes for backward compatibility */}
           <Route path="/report" element={<ReportMissing />} />
           <Route path="/search" element={<SearchNetwork />} />

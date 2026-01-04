@@ -1,0 +1,10 @@
+{
+    "name": "dhund-monorepo",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build:frontend": "cd frontend && npm install && npm run build",
+        "build:backend": "pip install -r backend/requirements.txt",
+        "deploy": "vercel --prod"
+    }
+}

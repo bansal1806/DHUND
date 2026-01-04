@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, MapPin, Scan, Shield, AlertTriangle, CheckCircle, Activity, Satellite, Filter, Terminal, Zap, Globe } from 'lucide-react';
+import { Camera, MapPin, Scan, Shield, AlertTriangle, CheckCircle, Activity, Satellite, Filter, Terminal, Zap, Globe, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { apiUrl } from '../config/api';
@@ -7,6 +7,7 @@ import MapComponent from './MapComponent';
 import supabase from '../supabase';
 import BiometricOverlay from './BiometricOverlay';
 import SimpleFaceModel from './SimpleFaceModel';
+import apiService from '../services/apiService';
 
 const SearchNetwork = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -15,6 +16,12 @@ const SearchNetwork = () => {
   const [activeTab, setActiveTab] = useState('map');
   const [activeSearch, setActiveSearch] = useState(null);
   const [privacyMode, setPrivacyMode] = useState(true);
+  const [searchType, setSearchType] = useState('semantic'); // 'semantic' or 'cctv'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cctvPersonId, setCctvPersonId] = useState('');
+  const [missingPersons, setMissingPersons] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
 
   const mockLocations = [
     { id: 1, position: [19.0176, 72.8562], title: "Dadar Station", description: "CAM_MUM_DADAR_001", isMatch: true },
@@ -221,21 +228,21 @@ const SearchNetwork = () => {
       <div className="scanline" />
       <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-10">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-28 pb-10">
         {/* Header HUD */}
-        <div className="mb-12 border-b border-cyan-500/20 pb-8 flex justify-between items-end">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Globe size={18} className="text-cyan-500 animate-spin-slow" />
-              <span className="text-[10px] font-bold text-cyan-500 tracking-[0.2em]">SURVEILLANCE_GRID_v2.0</span>
+        <div className="mb-8 sm:mb-12 border-b border-cyan-500/20 pb-6 sm:pb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <Globe size={16} className="sm:w-[18px] sm:h-[18px] text-cyan-500 animate-spin-slow flex-shrink-0" />
+              <span className="text-[9px] sm:text-[10px] font-bold text-cyan-500 tracking-[0.2em]">SURVEILLANCE_GRID_v2.0</span>
             </div>
-            <h1 className="text-5xl font-black hologram-text text-white">NETWORK_CONTROL</h1>
-            <p className="text-sm text-slate-500 mt-2 max-w-xl font-mono">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black hologram-text text-white">NETWORK_CONTROL</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-xl font-mono">
               Monitoring 15,842 federated neural nodes. Spatial intelligence active.
               Latent identification protocols engaged.
             </p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-4 flex-wrap">
             <button onClick={startNetworkScan} disabled={isScanning} className={`modern-card py-2 px-8 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 flex items-center gap-3 group ${isScanning ? 'animate-pulse' : ''}`}>
               {isScanning ? <Activity size={16} className="animate-spin" /> : <Scan size={16} className="group-hover:scale-110 transition-transform" />}
               {isScanning ? 'SCANNING...' : 'INITIATE_SCAN'}
@@ -395,31 +402,126 @@ const SearchNetwork = () => {
               )}
             </AnimatePresence>
 
-            {/* Recent Detections List */}
+            {/* Search Interface */}
             <div className="modern-card p-6">
               <FuiCorner />
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <Activity size={16} className="text-emerald-500" />
-                <h2 className="text-sm font-bold tracking-widest uppercase">RECENT_DETECTIONS</h2>
+                <h2 className="text-sm font-bold tracking-widest uppercase">SEARCH_INTERFACE</h2>
               </div>
-              <div className="space-y-4">
-                {recentMatches.map((match) => (
-                  <div key={match.id} className="modern-card p-4 border-slate-800 bg-black/40 relative group">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="text-xs font-bold text-white uppercase tracking-tighter">{match.childName}</div>
-                      <div className="text-xs font-black text-emerald-400 hologram-text">{match.confidence}%</div>
-                    </div>
-                    <div className="text-[8px] text-slate-500 font-mono mb-3">{match.cameraId}</div>
-                    <div className="h-0.5 bg-slate-900 w-full mb-3">
-                      <div className="h-full bg-emerald-500/40 w-full group-hover:bg-emerald-500 transition-colors" />
-                    </div>
-                    <div className="flex justify-between items-center text-[7px] font-bold text-slate-600">
-                      <span>TS: {match.time.toUpperCase()}</span>
-                      <span className="text-emerald-600">{match.status.toUpperCase()}</span>
-                    </div>
-                  </div>
-                ))}
+              
+              {/* Search Type Toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setSearchType('semantic')}
+                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${
+                    searchType === 'semantic'
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  SEMANTIC
+                </button>
+                <button
+                  onClick={() => setSearchType('cctv')}
+                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${
+                    searchType === 'cctv'
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  CCTV
+                </button>
               </div>
+
+              {/* Semantic Search Input */}
+              {searchType === 'semantic' && (
+                <div className="space-y-3 mb-4">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSemanticSearch()}
+                    placeholder="Enter search query..."
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800 rounded text-white text-sm focus:outline-none focus:border-cyan-500 placeholder-slate-600"
+                  />
+                  <button
+                    onClick={handleSemanticSearch}
+                    disabled={loadingSearch || !searchQuery.trim()}
+                    className="w-full px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-semibold rounded transition-all flex items-center justify-center gap-2"
+                  >
+                    <Search size={14} />
+                    SEARCH
+                  </button>
+                </div>
+              )}
+
+              {/* CCTV Search Input */}
+              {searchType === 'cctv' && (
+                <div className="space-y-3 mb-4">
+                  <select
+                    value={cctvPersonId}
+                    onChange={(e) => setCctvPersonId(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-800 rounded text-white text-sm focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="">Select Missing Person</option>
+                    {missingPersons.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name} (Age: {person.age})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleCCTVSearch}
+                    disabled={loadingSearch || !cctvPersonId}
+                    className="w-full px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-semibold rounded transition-all flex items-center justify-center gap-2"
+                  >
+                    <Camera size={14} />
+                    SEARCH_CCTV
+                  </button>
+                </div>
+              )}
+
+              {/* Search Results */}
+              {loadingSearch && (
+                <div className="text-center py-4">
+                  <Activity className="h-6 w-6 text-cyan-500 animate-spin mx-auto" />
+                </div>
+              )}
+              
+              {!loadingSearch && searchResults.length > 0 && (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {searchResults.slice(0, 5).map((result, index) => (
+                    <div key={index} className="modern-card p-3 border-slate-800 bg-black/40 relative group">
+                      {result.name && (
+                        <>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="text-xs font-bold text-white uppercase tracking-tighter">{result.name}</div>
+                            {result.similarity && (
+                              <div className="text-xs font-black text-emerald-400">{(result.similarity * 100).toFixed(0)}%</div>
+                            )}
+                          </div>
+                          <div className="text-[8px] text-slate-500 font-mono mb-2">Age: {result.age}</div>
+                          {result.description && (
+                            <div className="text-[8px] text-slate-400 font-mono mb-2 line-clamp-2">{result.description}</div>
+                          )}
+                        </>
+                      )}
+                      {result.camera_id && (
+                        <>
+                          <div className="text-xs font-bold text-white mb-1">{result.camera_id}</div>
+                          {result.location && (
+                            <div className="text-[8px] text-slate-500 font-mono mb-2">{result.location}</div>
+                          )}
+                          {result.confidence && (
+                            <div className="text-xs font-black text-emerald-400">{(result.confidence * 100).toFixed(0)}%</div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Live Node Feed Simulation */}

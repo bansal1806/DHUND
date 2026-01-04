@@ -1,24 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, User, Phone, MapPin, Clock, Camera, Eye, CheckCircle, X, Star, Shield, Zap, Terminal, Activity } from 'lucide-react';
 import { apiUrl } from '../config/api';
+import apiService from '../services/apiService';
 
 const CitizenReport = () => {
+  const [missingPersons, setMissingPersons] = useState([]);
+  const [loadingPersons, setLoadingPersons] = useState(false);
   const [formData, setFormData] = useState({
-    sightingType: '',
-    childName: '',
-    estimatedAge: '',
+    person_id: '',
     description: '',
     location: '',
-    sightingTime: '',
-    reporterName: '',
-    reporterPhone: '',
-    reporterEmail: '',
-    confidence: 5,
-    photo: null,
-    additionalInfo: '',
-    anonymous: false
+    reporter_phone: '',
+    photo: null
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,28 +61,61 @@ const CitizenReport = () => {
     setVerificationScore(0);
   };
 
+  // Load missing persons on mount
+  useEffect(() => {
+    const loadMissingPersons = async () => {
+      setLoadingPersons(true);
+      try {
+        const response = await apiService.getMissingPersons();
+        if (response.status === 'success') {
+          setMissingPersons(response.data || []);
+        }
+      } catch (error) {
+        console.error('Error loading missing persons:', error);
+      } finally {
+        setLoadingPersons(false);
+      }
+    };
+    loadMissingPersons();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setMessage('');
+
+    // Validate required fields - backend expects: person_id, location, description, reporter_phone, sighting_photo
+    if (!formData.person_id || !formData.location || !formData.description || !formData.reporter_phone || !formData.photo) {
+      setMessage('Error: Please fill in all required fields (Missing Person, Location, Description, Phone, and Photo)');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const formDataToSend = new FormData();
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== '') {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
+      formDataToSend.append('person_id', parseInt(formData.person_id));
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('reporter_phone', formData.reporter_phone);
+      formDataToSend.append('sighting_photo', formData.photo);
 
-      await axios.post(apiUrl('api/citizen-report'), formDataToSend, {
+      const response = await axios.post(apiUrl('api/citizen-report'), formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      setMessage('Citizen report submitted successfully! Report ID: #CR' + Date.now().toString().slice(-6));
-      setStep(4);
+      if (response.data.status === 'success') {
+        const confidence = response.data.verification?.confidence || 0;
+        setMessage(`Citizen report submitted successfully! Report ID: #${response.data.report_id}. Verification confidence: ${(confidence * 100).toFixed(1)}%`);
+        setStep(4);
+      } else {
+        setMessage('Error submitting report. Please try again.');
+      }
     } catch (error) {
-      setMessage('Error submitting report. Please try again.');
+      const errorMsg = error.response?.data?.detail || error.message || 'Error submitting report. Please try again.';
+      setMessage(`Error: ${errorMsg}`);
+      console.error('Citizen report submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -140,7 +168,7 @@ const CitizenReport = () => {
       <div className="scanline" />
       <div className="fixed inset-0 cyber-grid opacity-10 pointer-events-none" />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 lg:px-8 py-12">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-28 pb-12">
         {/* Header HUD */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-3 px-4 py-1 border border-cyan-500/30 bg-cyan-500/5 mb-6">
@@ -198,33 +226,26 @@ const CitizenReport = () => {
                   })}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-800/50">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Target Identity</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                      <input
-                        type="text"
-                        name="childName"
-                        value={formData.childName}
-                        onChange={handleChange}
-                        className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
-                        placeholder="NAME_IF_KNOWN"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Est. Latency (Age)</label>
-                    <input
-                      type="number"
-                      name="estimatedAge"
-                      value={formData.estimatedAge}
+                <div className="space-y-2 pt-6 border-t border-slate-800/50">
+                  <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Missing Person *</label>
+                  {loadingPersons ? (
+                    <div className="px-4 py-4 bg-black/40 border border-slate-800 text-slate-500 text-sm">Loading missing persons...</div>
+                  ) : (
+                    <select
+                      name="person_id"
+                      value={formData.person_id}
                       onChange={handleChange}
-                      className="w-full px-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
-                      placeholder="APPROX_AGE"
-                    />
-                  </div>
+                      required
+                      className="w-full px-4 py-4 bg-black/40 border border-slate-800 text-cyan-400 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                    >
+                      <option value="">Select Missing Person</option>
+                      {missingPersons.map((person) => (
+                        <option key={person.id} value={person.id} className="bg-slate-900">
+                          {person.name} (Age: {person.age})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -243,7 +264,7 @@ const CitizenReport = () => {
                 <div className="flex justify-end pt-4">
                   <button
                     onClick={nextStep}
-                    disabled={!formData.sightingType || !formData.description}
+                    disabled={!formData.person_id || !formData.description}
                     className="modern-card px-10 py-3 bg-cyan-500/10 border-cyan-500/40 text-cyan-400 text-xs font-bold tracking-widest hover:bg-cyan-500 hover:text-white disabled:opacity-30 transition-all uppercase"
                   >
                     Proceed_to_Location
@@ -341,53 +362,23 @@ const CitizenReport = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div
-                    onClick={() => setFormData(prev => ({ ...prev, anonymous: !prev.anonymous }))}
-                    className={`w-4 h-4 border ${formData.anonymous ? 'border-cyan-500 bg-cyan-500/20' : 'border-slate-800'} cursor-pointer flex items-center justify-center`}
-                  >
-                    {formData.anonymous && <div className="w-2 h-2 bg-cyan-400 shadow-[0_0_5px_cyan]" />}
-                  </div>
-                  <label className="text-[10px] font-bold text-slate-400 tracking-widest uppercase cursor-pointer">Submit anonymously</label>
-                </div>
-
-                {!formData.anonymous && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    className="space-y-8 pt-6 border-t border-slate-800/50"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Full Name *</label>
-                        <input
-                          type="text"
-                          name="reporterName"
-                          value={formData.reporterName}
-                          onChange={handleChange}
-                          required={!formData.anonymous}
-                          className="w-full px-4 py-4 bg-black/40 border border-slate-800 text-slate-300 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
-                          placeholder="OPERATOR_NAME"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Neural Link (Phone) *</label>
-                        <div className="relative">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                          <input
-                            type="tel"
-                            name="reporterPhone"
-                            value={formData.reporterPhone}
-                            onChange={handleChange}
-                            required={!formData.anonymous}
-                            className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-slate-300 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
-                            placeholder="+91_MOBILE_HASH"
-                          />
-                        </div>
-                      </div>
+                <div className="space-y-8 pt-6 border-t border-slate-800/50">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Neural Link (Phone) *</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                      <input
+                        type="tel"
+                        name="reporter_phone"
+                        value={formData.reporter_phone}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-12 pr-4 py-4 bg-black/40 border border-slate-800 text-slate-300 placeholder-slate-700 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors font-mono"
+                        placeholder="+91_MOBILE_HASH"
+                      />
                     </div>
-                  </motion.div>
-                )}
+                  </div>
+                </div>
 
                 <div className="flex justify-between pt-8">
                   <button onClick={prevStep} className="text-[10px] font-bold text-slate-600 hover:text-slate-400 uppercase tracking-widest">Back</button>
