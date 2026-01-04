@@ -19,24 +19,8 @@
       "dest": "api/index.py"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "frontend/static/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "frontend/favicon.ico"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "frontend/manifest.json"
-    },
-    {
-      "src": "/logo(.*).png",
-      "dest": "frontend/logo$1.png"
-    },
-    {
       "src": "/(.*)",
-      "dest": "frontend/$1",
+      "dest": "/$1",
       "check": true
     },
     {
@@ -44,7 +28,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/index.html"
+      "dest": "/index.html"
     }
   ],
   "env": {
