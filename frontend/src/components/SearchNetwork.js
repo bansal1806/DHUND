@@ -172,6 +172,52 @@ const SearchNetwork = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchPersons = async () => {
+      try {
+        const response = await apiService.getMissingPersons();
+        if (response.status === 'success') {
+          setMissingPersons(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching missing persons:', error);
+      }
+    };
+    fetchPersons();
+  }, []);
+
+  const handleSemanticSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setLoadingSearch(true);
+    setSearchResults([]);
+    try {
+      const response = await apiService.semanticSearch(searchQuery);
+      if (response.status === 'success') {
+        setSearchResults(response.results);
+      }
+    } catch (error) {
+      console.error('Semantic search failed:', error);
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
+
+  const handleCCTVSearch = async () => {
+    if (!cctvPersonId) return;
+    setLoadingSearch(true);
+    setSearchResults([]);
+    try {
+      const response = await apiService.searchCCTV(cctvPersonId);
+      if (response.status === 'success') {
+        setSearchResults(response.results);
+      }
+    } catch (error) {
+      console.error('CCTV search failed:', error);
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
+
   const startNetworkScan = () => {
     setIsScanning(true);
     setScanProgress(0);
@@ -409,26 +455,24 @@ const SearchNetwork = () => {
                 <Activity size={16} className="text-emerald-500" />
                 <h2 className="text-sm font-bold tracking-widest uppercase">SEARCH_INTERFACE</h2>
               </div>
-              
+
               {/* Search Type Toggle */}
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => setSearchType('semantic')}
-                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${
-                    searchType === 'semantic'
+                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${searchType === 'semantic'
                       ? 'bg-cyan-600 text-white'
                       : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   SEMANTIC
                 </button>
                 <button
                   onClick={() => setSearchType('cctv')}
-                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${
-                    searchType === 'cctv'
+                  className={`flex-1 px-3 py-2 text-xs font-semibold rounded transition-all ${searchType === 'cctv'
                       ? 'bg-cyan-600 text-white'
                       : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   CCTV
                 </button>
@@ -488,7 +532,7 @@ const SearchNetwork = () => {
                   <Activity className="h-6 w-6 text-cyan-500 animate-spin mx-auto" />
                 </div>
               )}
-              
+
               {!loadingSearch && searchResults.length > 0 && (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {searchResults.slice(0, 5).map((result, index) => (
