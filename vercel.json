@@ -19,11 +19,6 @@
       "dest": "api/index.py"
     },
     {
-      "src": "/(.*)",
-      "dest": "/$1",
-      "check": true
-    },
-    {
       "handle": "filesystem"
     },
     {
