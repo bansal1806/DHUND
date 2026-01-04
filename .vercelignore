@@ -28,13 +28,12 @@ PROJECT_OVERVIEW.md
 README.md
 SUPABASE_SCHEMA.sql
 package-lock.json
+
+# Build Artifacts
 frontend/node_modules/
 frontend/build/
 
-# Bundle Optimization: Exclude frontend source from backend serverless functions
-# Vercel's legacy builders can sometimes include the whole repo
-frontend/src/
-frontend/public/
+# Bundle Optimization
 .git/
 .antigravity/
 .gemini/
