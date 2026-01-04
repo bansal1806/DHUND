@@ -1,4 +1,8 @@
-import cv2
+try:
+    import cv2
+    OPENCV_AVAILABLE = True
+except ImportError:
+    OPENCV_AVAILABLE = False
 import numpy as np
 import os
 import json
@@ -7,7 +11,11 @@ import openai
 from typing import List, Dict
 import base64
 import hashlib
-import mediapipe as mp
+try:
+    import mediapipe as mp
+    MEDIAPIPE_AVAILABLE = True
+except ImportError:
+    MEDIAPIPE_AVAILABLE = False
 import aiofiles
 from .logger import logger
 
@@ -15,25 +23,26 @@ class GaitAnalyzer:
     def __init__(self):
         # Fallback to simulation if mediapipe solutions are missing
         self.mp_active = False
-        try:
-            import mediapipe as mp
-            if hasattr(mp, 'solutions') and hasattr(mp.solutions, 'pose'):
-                self.mp_pose = mp.solutions.pose
-                self.pose = self.mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
-                self.mp_active = True
-        except:
-            pass
+        if MEDIAPIPE_AVAILABLE:
+            try:
+                if hasattr(mp, 'solutions') and hasattr(mp.solutions, 'pose'):
+                    self.mp_pose = mp.solutions.pose
+                    self.pose = self.mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
+                    self.mp_active = True
+            except:
+                pass
 
     def extract_gait_signature(self, image_path: str) -> Dict:
         """Extract skeletal landmarks or simulate if mediapipe is unavailable"""
         try:
-            if self.mp_active:
+            if self.mp_active and OPENCV_AVAILABLE:
                 image = cv2.imread(image_path)
-                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                results = self.pose.process(image_rgb)
-                if results.pose_landmarks:
-                    # Logic for actual signature...
-                    pass
+                if image is not None:
+                    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    results = self.pose.process(image_rgb)
+                    if results.pose_landmarks:
+                        # Logic for actual signature...
+                        pass
             
             # Extract specific landmarks relevant to gait/posture (shoulders, hips, knees, ankles)
             if self.mp_active and results.pose_landmarks:
@@ -87,14 +96,14 @@ class AIEngine:
     async def analyze_missing_person(self, photo_path: str, age: int, description: str) -> Dict:
         """Analyze missing person using Multi-Modal AI (OpenCV + GPT-4o)"""
         try:
-            # 1. Face Detection with OpenCV
-            image = cv2.imread(photo_path)
-            if image is None:
-                return {"error": "Invalid photo path or file corrupted"}
-                
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-            faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+            faces = []
+            # 1. Face Detection with OpenCV (if available)
+            if OPENCV_AVAILABLE:
+                image = cv2.imread(photo_path)
+                if image is not None:
+                    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+                    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
             
             # 2. Gait/Posture Analysis (Landmark Extraction)
             gait_data = self.gait_analyzer.extract_gait_signature(photo_path)
@@ -213,9 +222,12 @@ class AIEngine:
         """Verify citizen report with Dynamic Bayesian Weighting"""
         try:
             # 1. Image Quality Assessment for Dynamic Weighting
-            image = cv2.imread(sighting_photo_path)
-            height, width = image.shape[:2] if image is not None else (0, 0)
-            is_low_res = width < 400 or height < 400
+            is_low_res = True # Default to conservative
+            if OPENCV_AVAILABLE:
+                image = cv2.imread(sighting_photo_path)
+                if image is not None:
+                    height, width = image.shape[:2]
+                    is_low_res = width < 400 or height < 400
             
             # 2. Multi-Modal Vision Analysis
             verification_result = self.openai_service.verify_citizen_sighting(

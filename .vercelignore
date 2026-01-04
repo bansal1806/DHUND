@@ -1,28 +1,23 @@
-# Ignore files for Vercel deployment
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-.env
-.env.local
-*.db
-*.sqlite
-*.sqlite3
-node_modules/
-.vscode/
-.idea/
-*.log
-uploads/
-backend/__pycache__/
 backend/uploads/
 backend/*.db
 start_demo.bat
+Pipfile*
+PROJECT_OVERVIEW.md
+README.md
+SUPABASE_SCHEMA.sql
+package-lock.json
+
+# Bundle Optimization (Exclude frontend from backend functions)
+frontend/
+.git/
+.antigravity/
+.gemini/
+node_modules/
+*.md
+!api/**
+!backend/**
+!requirements.txt
+!.env
 
 # Bundle Optimization (Exclude frontend from backend functions)
 frontend/
