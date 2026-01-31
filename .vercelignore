@@ -1,4 +1,6 @@
-# Ignore files for Vercel deployment
+# Files to exclude from Vercel deployment
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -7,34 +9,50 @@ __pycache__/
 *.so
 *.egg
 *.egg-info/
-dist/
-build/
+
+# Local environment files (use Vercel Dashboard for env vars)
 .env
 .env.local
+backend/.env
+frontend/.env
+
+# Database files
 *.db
 *.sqlite
 *.sqlite3
-node_modules/
+backend/dhund.db
+
+# Local uploads
+backend/uploads/
+uploads/
+
+# IDE and system files
 .vscode/
 .idea/
 *.log
-uploads/
-backend/__pycache__/
-backend/uploads/
-backend/dhund.db
-start_demo.bat
-Pipfile.lock
-PROJECT_OVERVIEW.md
-README.md
-SUPABASE_SCHEMA.sql
-package-lock.json
+.DS_Store
+Thumbs.db
 
-# Build Artifacts
-frontend/node_modules/
-frontend/build/
-
-# Bundle Optimization
+# Git
 .git/
-.antigravity/
-.gemini/
-*.md
+
+# Documentation (not needed for runtime)
+PROJECT_OVERVIEW.md
+SUPABASE_SCHEMA.sql
+BUILD_ERROR_FIX.md
+
+# Lock files (npm will regenerate)
+package-lock.json
+frontend/package-lock.json
+Pipfile.lock
+
+# Demo scripts
+start_demo.bat
+
+# Pipfile (using requirements.txt instead)
+Pipfile
+
+# Python virtual environments
+venv/
+env/
+.venv/
