@@ -155,11 +155,13 @@ class AIEngine:
             
             for scenario in scenarios:
                 # In real implementation, this would generate actual images
+                # Using placeholders for demo to avoid 404s
+                placeholder_text = f"Age {target_age}: {scenario['condition']}".replace("_", "+")
                 variation = {
                     "scenario": scenario["condition"],
                     "description": f"Age {target_age}, {scenario['description']}",
                     "confidence": np.random.uniform(0.8, 0.95),
-                    "image_path": f"generated/age_progression_{scenario['condition']}.jpg"
+                    "image_path": f"https://placehold.co/600x400/000000/FFFFFF?text={placeholder_text}"
                 }
                 variations.append(variation)
             
@@ -217,9 +219,9 @@ class AIEngine:
         except Exception as e:
             return [{"error": f"CCTV search failed: {str(e)}"}]
     
-    async def verify_citizen_sighting(self, missing_person_encoding: List[float], sighting_photo_path: str, 
+    async def verify_citizen_sighting(self, target_image_path: str, sighting_photo_path: str, 
                                 location: str, description: str) -> Dict:
-        """Verify citizen report with Dynamic Bayesian Weighting"""
+        """Verify report with Dynamic Bayesian Weighting and Side-by-Side Vision"""
         try:
             # 1. Image Quality Assessment for Dynamic Weighting
             is_low_res = True # Default to conservative
@@ -229,10 +231,11 @@ class AIEngine:
                     height, width = image.shape[:2]
                     is_low_res = width < 400 or height < 400
             
-            # 2. Multi-Modal Vision Analysis
+            # 2. Multi-Modal Vision Analysis (Side-by-Side Comparison)
             verification_result = self.openai_service.verify_citizen_sighting(
                 sighting_photo_path, 
-                "Target Description: " + description,
+                target_image_path,
+                "Target Profile",
                 location,
                 description
             )

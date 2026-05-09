@@ -104,11 +104,14 @@ async def report_missing_person(
         embedding = openai_service.generate_embeddings(searchable_text)
         
         # 5. Save to persistent Database
+        # If cloud_url is missing, we use a placeholder for production safety
+        final_photo_path = cloud_url or "https://placehold.co/600x400?text=Photo+Pending+Upload"
+        
         missing_person = MissingPerson(
             name=name,
             age=age,
             description=description,
-            photo_path=cloud_url or photo_path,
+            photo_path=final_photo_path,
             reported_date=datetime.now()
         )
         
@@ -120,7 +123,7 @@ async def report_missing_person(
         return {
             "status": "success",
             "person_id": person_id,
-            "cloud_url": cloud_url,
+            "cloud_url": cloud_url or final_photo_path,
             "ai_analysis": analysis_results
         }
     
@@ -153,10 +156,23 @@ async def citizen_report_sighting(
         person_data = db.get_missing_person(person_id)
         if not person_data:
             raise HTTPException(status_code=404, detail="Target person ID not found in neural network")
+        
+        target_photo_url = person_data.get('photo_path')
+        target_photo_path = os.path.join(UPLOADS_DIR, f"target_{person_id}_{datetime.now().timestamp()}.jpg")
+        
+        # Download target photo if it's a URL
+        is_temp_target = False
+        if target_photo_url and target_photo_url.startswith('http'):
+            if cloud.download_image(target_photo_url, target_photo_path):
+                is_temp_target = True
+            else:
+                target_photo_path = target_photo_url # Fallback to URL
+        else:
+            target_photo_path = target_photo_url
 
-        # 3. Verify sighting with Multi-Modal AI
+        # 3. Verify sighting with Multi-Modal AI (Side-by-Side Comparison)
         verification = await ai_engine.verify_citizen_sighting(
-            person_data.get('face_encoding', []), 
+            target_photo_path,
             sighting_path, 
             location, 
             description
@@ -166,12 +182,15 @@ async def citizen_report_sighting(
         cloud_url = cloud.upload_image(sighting_path, folder="sightings")
         
         # 5. Save Report
+        # If cloud_url is missing, we use a placeholder for production safety
+        final_sighting_photo = cloud_url or "https://placehold.co/600x400?text=Sighting+Photo+Pending+Upload"
+        
         report = CitizenReport(
             person_id=person_id,
             location=location,
             description=description,
             reporter_phone=reporter_phone,
-            sighting_photo=cloud_url or sighting_path,
+            sighting_photo=final_sighting_photo,
             verification_score=verification['confidence'],
             report_time=datetime.now()
         )

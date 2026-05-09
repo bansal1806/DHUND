@@ -93,26 +93,33 @@ class OpenAIIntegration:
             logger.error("Grok Analysis failed", error=str(e))
             return self._mock_analysis(age, description)
 
-    def verify_citizen_sighting(self, sighting_image_path: str, missing_person_description: str, 
-                                location: str, citizen_description: str) -> Dict:
-        """Verify report using Grok multimodal with Biometric CoT"""
+    def verify_citizen_sighting(self, sighting_image_path: str, target_image_path: str, 
+                                missing_person_description: str, location: str, citizen_description: str) -> Dict:
+        """Verify report using Grok multimodal with side-by-side Biometric CoT"""
         if self.mock_mode:
             return self._mock_verification(location, citizen_description)
             
         try:
-            # Read and encode image
+            # Read and encode sighting image
             with open(sighting_image_path, "rb") as image_file:
-                image_data = image_file.read()
-                image_base64 = base64.b64encode(image_data).decode('utf-8')
+                sighting_data = image_file.read()
+                sighting_image_base64 = base64.b64encode(sighting_data).decode('utf-8')
+            
+            # Read and encode target image
+            with open(target_image_path, "rb") as image_file:
+                target_data = image_file.read()
+                target_image_base64 = base64.b64encode(target_data).decode('utf-8')
             
             prompt = (
-                f"NEURAL_VERIFICATION_PROTOCOL: Compare this sighting at {location} against the target profile: {missing_person_description}. "
+                f"NEURAL_VERIFICATION_PROTOCOL: Perform a direct biometric comparison between Image 1 (Target) and Image 2 (Sighting at {location}).\n"
+                f"Target Profile: {missing_person_description}. \n"
                 f"Citizen Observations: {citizen_description}. \n\n"
                 "INSTRUCTIONS:\n"
-                "1. COMPONENT_MATCH: Compare inter-pupillary distance, nasal aperture, and philtrum morphology.\n"
-                "2. DISQUALIFIER_SEARCH: Identify any features (scars, ear shape) that explicitly PROVE this is NOT the target.\n"
-                "3. CONFIDENCE_CALCULATION: Assign a percentage match based on biometric alignment.\n"
-                "4. OUTPUT: Provide the final confidence score in the format [X]% followed by a brief justification."
+                "1. COMPONENT_MATCH: Compare inter-pupillary distance, nasal bridge width, ear lobe attachment, and chin structure.\n"
+                "2. DISQUALIFIER_SEARCH: Look for immutable differences that prove Image 2 is NOT the person in Image 1.\n"
+                "CONFIDENCE_CALCULATION: Assign a percentage match based on biometric alignment.\n"
+                "4. OUTPUT: Provide the final confidence score in the format [X]% followed by a brief justification.\n\n"
+                "Note: Image 1 is the Target (Missing Person), Image 2 is the Sighting."
             )
             
             response = self.client.chat.completions.create(
@@ -125,7 +132,13 @@ class OpenAIIntegration:
                             {
                                 "type": "image_url",
                                 "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image_base64}"
+                                    "url": f"data:image/jpeg;base64,{target_image_base64}"
+                                }
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{sighting_image_base64}"
                                 }
                             }
                         ]
